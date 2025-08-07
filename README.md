@@ -2,6 +2,7 @@
 
 ## Setting Up the framework
 1. Copy `apis_example.env` to `apis.env` and fill it with your model credentials
+2. Install dependencies with `pip install -r requirements.txt`
 
 ## Setting Up a New Experiment
 
