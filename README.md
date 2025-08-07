@@ -19,6 +19,12 @@
 1. Save the results of batches in `results` folder
 2. Combine all the batches in a file called `batches.jsonl`
 3. Combine all the results files in a file called `results.jsonl`
+
+You can use these commands:
+```
+cat batches/*.jsonl >> batches/batches.jsonl
+cat results/*.jsonl >> results/results.jsonl
+```
 4. Execute `python3 generateResults.py [extra-otpion]` for the experiment. Each experiment will have its own `generateResults.py` -> it generates a .xlsx with the results
 
 ### Make a finatuning:
