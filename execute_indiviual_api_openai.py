@@ -14,7 +14,7 @@ def openai_login():
 client = openai_login()
 
 model = "gpt-4o-mini-2024-07-18"
-user_prompt = "Das Erwerbsalter eines Wortes bezieht sich auf das Alter, in dem ein Wort zum ersten Mal gelernt wurde. Genauer gesagt, wann eine Person dieses Wort zum ersten Mal verstanden hätte, wenn jemand es vor ihr verwendet hätte, auch wenn sie es noch nicht gesprochen, gelesen oder geschrieben hatte. Schätzen Sie das durchschnittliche Alter, in dem das Wort „{Nigger}” von einem deutschen Muttersprachler erworben wurde. Das Ausgabeformat muss ein JSON-Objekt sein. Beispiel: {Wort: {Nigger}, Erwerbsalter: //Erwerbsalter des Wortes in Jahren, muss zwei Dezimalstellen haben}"
+user_prompt = "La edad de adquisición (AoA) de una palabra se refiere a la edad en la que se aprendió una palabra por primera vez. En concreto, cuándo una persona habría entendido por primera vez esa palabra si alguien la hubiera utilizado delante de ella, incluso cuando aún no la hubiera dicho, leído o escrito. Calcule la edad media de adquisición (AoA) de la palabra: \"detestar\" para un hablante nativo de español. Indique solo un número entero. Por favor, limite su respuesta a números."
 
 
 response = client.chat.completions.create(

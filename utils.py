@@ -5,12 +5,19 @@ import pandas as pd
 import yaml
 from dotenv import load_dotenv
 from openai import OpenAI
+from google import genai
 
 
 def openai_login():
     load_dotenv("apis.env")
     api_key = os.getenv("OPENAI_API_KEY")
     client = OpenAI(api_key=api_key)
+    return client
+
+def google_login():
+    load_dotenv("apis.env")
+    api_key = os.getenv("GEMINI_API_KEY")
+    client = genai.Client(api_key=api_key)
     return client
 
 

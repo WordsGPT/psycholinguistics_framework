@@ -44,8 +44,23 @@ def load_word_list(file_path: str, column_name: str) -> list:
     print(f"Successfully loaded {len(word_list)} words.")
     return word_list
 
+def get_tasks(word_list: list,
+    experiment_path: str,
+    prompt: str,
+    model_version: str = "gpt-4o-2024-08-06",
+    temperature: int = 0,
+    logprobs: bool = True,
+    top_logprobs: int = 5,
+    prompt_key: str = "{WORD}",
+    company: str = "OpenAI") -> list:
+    if company == "OpenAI":
+        return get_tasks_openai(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs, prompt_key)
+    elif company == "Google":
+        return get_tasks_gemini(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
+    else:
+        raise ValueError(f"Unknown company: {company}")
 
-def get_tasks(
+def get_tasks_openai(
     word_list: list,
     experiment_path: str,
     prompt: str,
@@ -67,6 +82,8 @@ def get_tasks(
                 "temperature": temperature,
                 "logprobs": logprobs,
                 "top_logprobs": top_logprobs,
+                "max_completion_tokens": 500,
+                "reasoning_effort": "minimal",
                 "response_format": {"type": "text"},
                 "messages": [
                 {"role": "user", "content": prompt.replace(prompt_key, str(word))}
@@ -74,6 +91,45 @@ def get_tasks(
             },
         }
 
+        tasks.append(task)
+    return tasks
+
+def get_tasks_gemini(
+    word_list: list,
+    experiment_path: str,
+    prompt: str,
+    model_version: str = "gemini-2.0-flash",
+    temperature: float = 0.0,
+    logprobs: bool = True,
+    top_logprobs: int = 5,
+    prompt_key: str = "{WORD}",
+) -> list:
+    """
+    Genera una lista de tasks con la estructura oficial de la API de Google Gemini.
+    """
+    tasks = []
+    for counter, word in enumerate(word_list, start=1):
+        task = {
+            "key": f"{experiment_path}_task_{counter}",
+            "request": {
+                "model": f"models/{model_version}",
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": prompt.replace(prompt_key, str(word))
+                            }
+                        ]
+                    }
+                ],
+                "generation_config": {
+                    "temperature": temperature,
+                    "response_logprobs": logprobs,
+                    "logprobs": top_logprobs
+
+                }
+            }
+        }
         tasks.append(task)
     return tasks
 
@@ -133,6 +189,7 @@ if __name__ == "__main__":
         prompt=prompt,
         prompt_key=f"{{{config_args['dataset_column']}}}",
         model_version=config_args["model_name"],
+        company=config_args["company"],
     )
     list_of_batch_names = create_batches(
         tasks=tasks,

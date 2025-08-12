@@ -4,12 +4,15 @@ experiments:
     dataset_column: "Name of the column containing the words"
     prompt_path: "path/to/prompt.txt"
     model_name: "OpenAI model name, e.g., gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
 
   experiment-ft-v1:
     dataset_path: "path/to/original/dataset.csv"
     dataset_column: "Name of the column containing the words"
     prompt_path: "path/to/prompt.txt"
+    # prompt_assistant_path: ""
     model_name: "OpenAI fine-tuned model name, e.g., ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-ft-v1:AS8ft88F"
+    company: "OpenAI" #google or openai
 
 finetuning:
   experiment-ft-v1:
@@ -19,8 +22,10 @@ finetuning:
     random_state: "Integer, random seed, usually 42"
     answer_column: "Name of the column containing the answers"
     prompt_path: "path/to/prompt.txt"
-    # prompt_assistant_path: "" # Optional, if using an assistant prompt
-    
+    # prompt_assistant_path: ""
+    company: "OpenAI"
+
+
     # execute finetuning:
     ft_formatted_dataset_path: "path/to/finetuning/formatted/dataset.jsonl"
     model_name: "OpenAI base model name, e.g., gpt-4o-mini-2024-07-18"

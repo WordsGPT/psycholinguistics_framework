@@ -4,13 +4,15 @@ experiments:
     dataset_column: "Word"
     prompt_path: "spanish_v0.txt"
     model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
   
   aoa_spanish_ft_spanish_selected_words_AoA_Spanish_fromAoE_10k_test:
     dataset_path: "selected_words_AoA_Spanish_fromAoE_10k_test.xlsx"
     dataset_column: "Word"
     prompt_path: "spanish_v0.txt"
     model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:aoa-spanish-ft-fromaoe-cross-2:BxgI7Nbj"
-  
+    company: "OpenAI"
+
 
 
 
@@ -28,6 +30,8 @@ finetuning:
     model_name: "gpt-4o-mini-2024-07-18"
     especial_suffix: "aoa_spanish-ft-fromAoE-cross_2"
     # output ft:gpt-4o-mini-2024-07-18:ging-upm:aoa-spanish-ft-fromaoe-cross-2:BxgI7Nbj
+    company: "OpenAI"
+
 
 
 
