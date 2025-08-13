@@ -1,8 +1,14 @@
+huggingface_hub==0.34.3
+jsonlines==4.0.0
+numpy==1.23.5
 openai==1.57.0
-python-dotenv==1.0.1
 pandas==2.2.2
+protobuf==4.23.3
 scipy==1.14.1
 openpyxl==3.1.5
-jsonlines==4.0.0
+python-dotenv==1.0.1
 pyyaml==6.0.2
+torch==2.7.1
+tqdm==4.67.0
+transformers==4.55.0
 google-genai==1.29.0
