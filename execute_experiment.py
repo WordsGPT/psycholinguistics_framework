@@ -130,6 +130,7 @@ def execute_tasks_google(list_of_batch_names: list, experiment_path: str) -> lis
 def format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs=5):
     gen_text = output[0]["generated_text"]
     scores = output[0]["scores"]
+    token_entry_list=[]
 
     char_pos = gen_text.find('{')
     if char_pos != -1:
@@ -148,7 +149,6 @@ def format_results_huggingface(output, tokenizer, counter, experiment_path, logp
     if start_idx == -1:
         token_entry = []
     else:
-        token_entry_list=[]
         for step_logits_list in scores[start_idx:end_idx]:
             step_logits = torch.tensor(step_logits_list)
             step_probs = torch.softmax(step_logits, dim=0)
@@ -229,9 +229,8 @@ def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: s
                 counter = 0
                 for obj in tqdm(reader, desc=f"Processing {jsonl_file_path}"):
                     prompt = obj.get("prompt")
-
                     batch_messages.append([{"role": "user", "content": prompt}])
-                    if len(batch_messages) == batch_size:
+                    if (len(batch_messages) == batch_size):
                         outputs = pipeline(
                             batch_messages,
                             max_new_tokens=500,
@@ -247,6 +246,23 @@ def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: s
                             f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
                             f_out.flush()
                         batch_messages=[]
+
+                if len(batch_messages) > 0:  # pending messages
+                    outputs = pipeline(
+                        batch_messages,
+                        max_new_tokens=500,
+                        temperature = temperature,
+                        do_sample=False,
+                        return_full_text=False,
+                        return_dict_in_generate=True,
+                        output_scores=response_logprobs
+                    )
+                    for output in outputs:
+                        counter += 1
+                        json_line = format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs)
+                        f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
+                        f_out.flush()
+                    batch_messages=[]
 
 
 def retrieve_batch_job_google(batch_job_names):
@@ -351,6 +367,10 @@ if __name__ == "__main__":
         )
     elif company == "HuggingFace":
         huggingface_login()
+        execute_tasks_save_huggingface(
+            list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH, run_prefix=EXPERIMENT_NAME
+        )
+    elif company == "Local":
         execute_tasks_save_huggingface(
             list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH, run_prefix=EXPERIMENT_NAME
         )

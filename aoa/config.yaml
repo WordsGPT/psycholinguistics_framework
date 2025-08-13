@@ -13,6 +13,13 @@ experiments:
     model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:aoa-spanish-ft-fromaoe-cross-2:BxgI7Nbj"
     company: "OpenAI"
 
+  test:
+    dataset_path: "selected_words_AoA_Spanish_fromAoE_10k_test.xlsx"
+    dataset_column: "Word"
+    prompt_path: "spanish_v0.txt"
+    model_name: "distilgpt2"
+    company: "Local"
+
 
 
 

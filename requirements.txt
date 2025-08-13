@@ -12,3 +12,4 @@ torch==2.7.1
 tqdm==4.67.0
 transformers==4.55.0
 google-genai==1.29.0
+accelerate==1.10.0

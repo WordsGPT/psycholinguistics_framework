@@ -59,6 +59,8 @@ def get_tasks(word_list: list,
         return get_tasks_gemini(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
     elif company == "HuggingFace":
         return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
+    elif company == "Local":
+        return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
     else:
         raise ValueError(f"Unknown company: {company}")
 
@@ -189,9 +191,6 @@ if __name__ == "__main__":
             "Provide as arguments the experiment path and optionally the experiment name, i.e.: python3 prepare_experiment.py <EXPERIMENT_PATH> <EXPERIMENT_NAME>."
         )
         exit()
-
-    # # login
-    # client = openai_login()
 
     # prepare data
     config_args = load_config(
