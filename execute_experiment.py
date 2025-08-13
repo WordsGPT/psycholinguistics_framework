@@ -127,7 +127,7 @@ def execute_tasks_google(list_of_batch_names: list, experiment_path: str) -> lis
     return list_of_job_names
 
 
-def format_results_huggingface(output, tokenizer, logprobs=5):
+def format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs=5):
     gen_text = output[0]["generated_text"]
     scores = output[0]["scores"]
 
@@ -176,6 +176,7 @@ def format_results_huggingface(output, tokenizer, logprobs=5):
             }
             token_entry_list.append(token_entry)
     json_line = {
+        "id": f"{experiment_path}_task_{counter}",
         "response": {
             "status_code": -1,
             "body": {
@@ -225,6 +226,7 @@ def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: s
         with open(output_file, "w", encoding="utf-8") as f_out:  
             with jsonlines.open(jsonl_file_path, "r") as reader:
                 batch_messages = []
+                counter = 0
                 for obj in tqdm(reader, desc=f"Processing {jsonl_file_path}"):
                     prompt = obj.get("prompt")
 
@@ -240,7 +242,8 @@ def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: s
                             output_scores=response_logprobs
                         )
                         for output in outputs:
-                            json_line = format_results_huggingface(output, tokenizer, logprobs)
+                            counter += 1
+                            json_line = format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs)
                             f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
                             f_out.flush()
                         batch_messages=[]

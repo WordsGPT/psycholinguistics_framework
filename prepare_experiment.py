@@ -140,7 +140,7 @@ def get_tasks_huggingface(
     word_list: list,
     experiment_path: str,
     prompt: str,
-    model_version: str = "gemini-2.0-flash",
+    model_version: str,
     temperature: float = 0.0,
     logprobs: bool = True,
     top_logprobs: int = 5,

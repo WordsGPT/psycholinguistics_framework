@@ -41,9 +41,9 @@ def extract_number(text):
     if not match:
         match = re.search(f'"{feature_constant}"\s*:\s*([0-9]*\.?[0-9]+)', text)
     if not match:
-        match = re.search(f'[-+]?\d*\.\d+|[-+]?\d+\.\d*|[-+]?\d+', text)
-        if match:
-            return float(match.group(0))
+        all_matches = re.findall(r'[-+]?\d*\.\d+|[-+]?\d+\.\d*|[-+]?\d+', text)
+        if all_matches:
+            return float(all_matches[-1])
     if match:
         return float(match.group(1))
     return None
@@ -206,6 +206,62 @@ def google_processing(results_content_file, batches_content_file):
 
     return combined_data
 
+
+## HuggingFace ##
+
+def huggingface_processing(results_content_file, batches_content_file):
+    match_key = 'id'
+    lookup = {entry[match_key]: entry for entry in batches_content_file if match_key in entry}
+    combined_data = []
+    index = 0
+    for entry in results_content_file:
+        entry_result = {}
+        index += 1
+        weighted_sum = None
+        logprob = None
+        if match_key in entry and entry[match_key] in lookup:
+            combined_entry = {**entry, **lookup[entry[match_key]]}
+            custom_id = combined_entry[match_key]
+            if mode == "json":             
+                word_input = extract_word_input(combined_entry['prompt'])
+                word_output = extract_word_output(combined_entry['response']['body']['choices'][0]['message']['content'])
+
+                feature_value = extract_number(combined_entry['response']['body']['choices'][0]['message']['content'])
+                if word_input and word_output:
+                    if word_input != word_output:
+                        print(f"Warning: custom Id: '{custom_id}. Word input '{word_input}' does not match word output '{word_output}'")
+                        #feature_value = '#N/D'
+            elif mode == "weighted_sum" or mode == "number":
+                word_input = extract_word_input(combined_entry['prompt'])
+                # Only valid for responses of single token
+                if len(combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"]) == 1:
+                    top_logprobs_list = combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"][0]['top_logprobs']
+                    weighted_sum = 0
+                    # Iterate over the list of top_logprobs that are numbers
+                    for top_logprob in top_logprobs_list:
+                        try:
+                            token_value = int(top_logprob['token'])
+                            logprob_value = top_logprob['logprob']
+                            weighted_sum += token_value * np.exp(float(logprob_value))
+                        except ValueError:
+                            pass
+                    logprob = combined_entry['response']['body']['choices'][0]['logprobs']['content'][0]['logprob']
+                feature_value = combined_entry['response']['body']['choices'][0]['message']['content']
+
+            entry_result['word'] = word_input
+            # entry_result['custom_id'] = custom_id
+            entry_result[feature_column] = feature_value
+
+            if logprob is not None:
+                entry_result['logprob'] = logprob
+                logprobs = True
+            if weighted_sum is not None:
+                entry_result['weighted_sum'] = weighted_sum
+
+            combined_data.append(entry_result)
+
+    return combined_data
+
 ## Main ##
 
 if __name__ == "__main__":
@@ -255,6 +311,8 @@ if __name__ == "__main__":
         combined_data = openAI_processing(results_content_file, batches_content_file)
     elif 'key' in batches_content_file[0]:
         combined_data = google_processing(results_content_file, batches_content_file)
+    elif 'id' in batches_content_file[0]:
+        combined_data = huggingface_processing(results_content_file, batches_content_file)
     else:
         print("Unknown batch format, cannot process results.")
 
