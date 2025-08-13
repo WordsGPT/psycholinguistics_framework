@@ -1,0 +1,160 @@
+experiments:
+  
+  familiarity_english_v01_short_prompt:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v01_short_prompt.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+  familiarity_english_v02_standard_prompt:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+  
+  familiarity_english_v04_return_word:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v03_return_word.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+
+  familiarity_english_v05_return_json:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v04_return_json.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+
+  familiarity_english_v06_no_quotation_no_colon:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v05_no_quotation_no_colon.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+
+  familiarity_english_v07_prompt_spanish:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v06_prompt_spanish.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+
+  familiarity_english_v08_decimals:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v07_decimals.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+
+  familiarity_english_v09_rescale:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v08_rescale.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+  
+  familiarity_english_v10_few_shot:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v09_few_shot.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+  familiarity_english_v02_standard_prompt_llama3.1-8B-Instruct:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "meta-llama/Llama-3.1-8B-Instruct"
+    company: "Local"
+
+
+  
+
+  # finetunings
+  familiarity_english_ft_v01_glas:
+    dataset_path: "1_test_random_MRC_Glas.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-english-ft-v01:C1uE7jbf"
+    company: "OpenAI"
+
+
+  familiarity_english_ft_v01_mrc:
+    dataset_path: "1_test_random_MRC_Glas.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-english-ft-v01-mrc:C1uKAmnD"
+    company: "OpenAI"
+
+
+  familiarity_english_ft_v01_glas_mrc_mean:
+    dataset_path: "1_test_random_MRC_Glas.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-english-ft-v01-glas-mrc-mean:C1uS3eTO"
+    company: "OpenAI"
+
+
+finetuning:
+  familiarity_english_ft_v01_glas:
+    # create finetuning dataset:
+    ft_dataset_path: "1_train_random_MRC_Glas.xlsx"
+    train_split_percentage: 1
+    random_state: 42
+    answer_column: "FAM_Glas"
+    prompt_path: "english_v02_standard_prompt.txt"
+    # prompt_assistant_path: ""
+    # execute finetuning:
+    dataset_finetune_name: "Glasgow_MRC_joint_norms_inner_join_english_ft_v01_glas.jsonl"
+    model_name: "gpt-4o-mini-2024-07-18"
+    especial_suffix: "familiarity_english_ft_v01"
+    #ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-english-ft-v01:C1uE7jbf
+    company: "OpenAI"
+
+
+
+  familiarity_english_ft_v01_mrc:
+    # create finetuning dataset:
+    ft_dataset_path: "1_train_random_MRC_Glas.xlsx"
+    train_split_percentage: 1
+    random_state: 42
+    answer_column: "FAM_MRC"
+    prompt_path: "english_v02_standard_prompt.txt"
+    # prompt_assistant_path: ""
+    # execute finetuning:
+    dataset_finetune_name: "Glasgow_MRC_joint_norms_inner_join_english_ft_v01_mrc.jsonl"
+    model_name: "gpt-4o-mini-2024-07-18"
+    especial_suffix: "familiarity_english_ft_v01_mrc"
+    # ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-english-ft-v01-mrc:C1uKAmnD
+    company: "OpenAI"
+
+
+  familiarity_english_ft_v01_glas_mrc_mean:
+    # create finetuning dataset:
+    ft_dataset_path: "1_train_random_MRC_Glas.xlsx"
+    train_split_percentage: 1
+    random_state: 42
+    answer_column: "FAM_Glas_MRC_mean"
+    prompt_path: "english_v02_standard_prompt.txt"
+    # prompt_assistant_path: ""
+    # execute finetuning:
+    dataset_finetune_name: "Glasgow_MRC_joint_norms_inner_join_english_ft_v01_glas_mrc_mean.jsonl"
+    model_name: "gpt-4o-mini-2024-07-18"
+    especial_suffix: "familiarity_english_ft_v01_glas_mrc_mean"
+    # ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-english-ft-v01-glas-mrc-mean:C1uS3eTO
+    company: "OpenAI"
+
+
+
+
+

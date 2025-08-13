@@ -131,50 +131,32 @@ def format_results_huggingface(output, tokenizer, counter, experiment_path, logp
     gen_text = output[0]["generated_text"]
     scores = output[0]["scores"]
     token_entry_list=[]
-
-    char_pos = gen_text.find('{')
-    if char_pos != -1:
-        prefix_tokens = tokenizer.encode(gen_text[:char_pos], add_special_tokens=False)
-        start_idx = len(prefix_tokens)
-    else:
-        start_idx=-1
-    
-    char_pos = gen_text.find('}')
-    if char_pos != -1:
-        prefix_tokens = tokenizer.encode(gen_text[:char_pos], add_special_tokens=False)
-        end_idx = len(prefix_tokens)
-    else:
-        end_idx=-1
-
-    if start_idx == -1:
-        token_entry = []
-    else:
-        for step_logits_list in scores[start_idx:end_idx]:
-            step_logits = torch.tensor(step_logits_list)
-            step_probs = torch.softmax(step_logits, dim=0)
-            step_logprobs = torch.log(step_probs)
-            top_probs, top_indices = torch.topk(step_probs, logprobs)
-            top_logprobs = torch.log(top_probs)
-            
-            top_tokens = tokenizer.convert_ids_to_tokens(top_indices.tolist())
-            
-            cur_token = top_tokens[0]
-            cur_logprob = top_logprobs.tolist()[0]
-            
-            top_logprobs_list = []
-            for t, lp in zip(top_tokens, top_logprobs.tolist()):
-                top_logprobs_list.append({
-                    "token": t,
-                    "logprob": lp,
-                    "bytes": list(t.encode("utf-8"))
-                })
-            token_entry = {
-                "token": cur_token,
-                "logprob": cur_logprob,
-                "bytes": list(cur_token.encode("utf-8")),
-                "top_logprobs": top_logprobs_list
-            }
-            token_entry_list.append(token_entry)
+    for step_logits_list in scores:
+        step_logits = torch.tensor(step_logits_list)
+        step_probs = torch.softmax(step_logits, dim=0)
+        step_logprobs = torch.log(step_probs)
+        top_probs, top_indices = torch.topk(step_probs, logprobs)
+        top_logprobs = torch.log(top_probs)
+        
+        top_tokens = tokenizer.convert_ids_to_tokens(top_indices.tolist())
+        
+        cur_token = top_tokens[0]
+        cur_logprob = top_logprobs.tolist()[0]
+        
+        top_logprobs_list = []
+        for t, lp in zip(top_tokens, top_logprobs.tolist()):
+            top_logprobs_list.append({
+                "token": t,
+                "logprob": lp,
+                "bytes": list(t.encode("utf-8"))
+            })
+        token_entry = {
+            "token": cur_token,
+            "logprob": cur_logprob,
+            "bytes": list(cur_token.encode("utf-8")),
+            "top_logprobs": top_logprobs_list
+        }
+        token_entry_list.append(token_entry)
     json_line = {
         "id": f"{experiment_path}_task_{counter}",
         "response": {

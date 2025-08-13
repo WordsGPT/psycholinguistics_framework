@@ -14,6 +14,14 @@ experiments:
     model_name: "OpenAI fine-tuned model name, e.g., ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-ft-v1:AS8ft88F"
     company: "OpenAI" #google or openai
 
+  experiment-no-ft-local:
+    dataset_path: "path/to/original/dataset.csv"
+    dataset_column: "Name of the column containing the words"
+    prompt_path: "path/to/prompt.txt"
+    # prompt_assistant_path: ""
+    model_name: "meta-llama/Llama-3.1-8B-Instruct"
+    company: "Local"
+
 finetuning:
   experiment-ft-v1:
     # create finetuning dataset:
