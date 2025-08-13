@@ -6,7 +6,7 @@ import yaml
 from dotenv import load_dotenv
 from openai import OpenAI
 from google import genai
-
+from huggingface_hub import login
 
 def openai_login():
     load_dotenv("apis.env")
@@ -19,6 +19,12 @@ def google_login():
     api_key = os.getenv("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
     return client
+
+    
+def huggingface_login():
+    load_dotenv("apis.env")
+    api_key = os.getenv("HUGGINGFACE_TOKEN")
+    login(token=api_key)
 
 
 def read_yaml(file_path: str):

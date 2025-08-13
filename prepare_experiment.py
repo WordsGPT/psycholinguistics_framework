@@ -57,6 +57,8 @@ def get_tasks(word_list: list,
         return get_tasks_openai(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs, prompt_key)
     elif company == "Google":
         return get_tasks_gemini(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
+    elif company == "HuggingFace":
+        return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
     else:
         raise ValueError(f"Unknown company: {company}")
 
@@ -134,6 +136,30 @@ def get_tasks_gemini(
     return tasks
 
 
+def get_tasks_huggingface(
+    word_list: list,
+    experiment_path: str,
+    prompt: str,
+    model_version: str = "gemini-2.0-flash",
+    temperature: float = 0.0,
+    logprobs: bool = True,
+    top_logprobs: int = 5,
+    prompt_key: str = "{WORD}",
+) -> list:
+    tasks = []
+    for counter, word in enumerate(word_list, start=1):
+        task = {
+            "id": f"{experiment_path}_task_{counter}",
+            "prompt": prompt.replace(prompt_key, str(word)),
+            "temperature": temperature,
+            "response_logprobs": logprobs,
+            "logprobs": top_logprobs,
+            "model": model_version,
+        }
+        tasks.append(task)
+    return tasks
+    
+
 def create_batches(
     tasks: list, experiment_path: str, run_prefix: str, chunk_size: int = 50000
 ):
@@ -164,8 +190,8 @@ if __name__ == "__main__":
         )
         exit()
 
-    # login
-    client = openai_login()
+    # # login
+    # client = openai_login()
 
     # prepare data
     config_args = load_config(

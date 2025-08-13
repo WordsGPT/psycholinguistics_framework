@@ -30,8 +30,15 @@ from datetime import datetime
 from google import genai
 from google.genai import types
 
-from utils import load_config, openai_login, google_login
+from utils import load_config, openai_login, google_login, huggingface_login
 
+import jsonlines
+from transformers import AutoModelForCausalLM, AutoTokenizer, logging
+logging.set_verbosity_error()
+import transformers
+import torch
+import json
+from tqdm import tqdm
 
 def read_list_of_batches(folder_name: str, run_prefix: str) -> list:
     file_names = [
@@ -118,6 +125,126 @@ def execute_tasks_google(list_of_batch_names: list, experiment_path: str) -> lis
         print(f"Created batch job: {batch_job.name}")
         list_of_job_names.append(batch_job.name)
     return list_of_job_names
+
+
+def format_results_huggingface(output, tokenizer, logprobs=5):
+    gen_text = output[0]["generated_text"]
+    scores = output[0]["scores"]
+
+    char_pos = gen_text.find('{')
+    if char_pos != -1:
+        prefix_tokens = tokenizer.encode(gen_text[:char_pos], add_special_tokens=False)
+        start_idx = len(prefix_tokens)
+    else:
+        start_idx=-1
+    
+    char_pos = gen_text.find('}')
+    if char_pos != -1:
+        prefix_tokens = tokenizer.encode(gen_text[:char_pos], add_special_tokens=False)
+        end_idx = len(prefix_tokens)
+    else:
+        end_idx=-1
+
+    if start_idx == -1:
+        token_entry = []
+    else:
+        token_entry_list=[]
+        for step_logits_list in scores[start_idx:end_idx]:
+            step_logits = torch.tensor(step_logits_list)
+            step_probs = torch.softmax(step_logits, dim=0)
+            step_logprobs = torch.log(step_probs)
+            top_probs, top_indices = torch.topk(step_probs, logprobs)
+            top_logprobs = torch.log(top_probs)
+            
+            top_tokens = tokenizer.convert_ids_to_tokens(top_indices.tolist())
+            
+            cur_token = top_tokens[0]
+            cur_logprob = top_logprobs.tolist()[0]
+            
+            top_logprobs_list = []
+            for t, lp in zip(top_tokens, top_logprobs.tolist()):
+                top_logprobs_list.append({
+                    "token": t,
+                    "logprob": lp,
+                    "bytes": list(t.encode("utf-8"))
+                })
+            token_entry = {
+                "token": cur_token,
+                "logprob": cur_logprob,
+                "bytes": list(cur_token.encode("utf-8")),
+                "top_logprobs": top_logprobs_list
+            }
+            token_entry_list.append(token_entry)
+    json_line = {
+        "response": {
+            "status_code": -1,
+            "body": {
+                "model": config_args['model_name'],
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": gen_text,
+                            "refusal": None,
+                            "annotations": []
+                        },
+                        "logprobs": {
+                            "content": token_entry_list
+                        }
+                    }
+                ]
+            }
+        }
+    }
+    return json_line
+
+
+def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: str, run_prefix: str, batch_size = 5) -> list:
+    list_of_job_names = []
+    for index, file_name in enumerate(list_of_batch_names):
+        jsonl_file_path = f"{experiment_path}/batches/{file_name}"
+        with jsonlines.open(jsonl_file_path, "r") as reader:
+            for obj in reader:
+                model_name = obj.get("model")
+                temperature = obj.get("temperature")
+                response_logprobs = obj.get("response_logprobs")
+                logprobs = obj.get("logprobs")
+                break
+        pipeline = transformers.pipeline(
+            "text-generation",
+            model=model_name,
+            model_kwargs={"torch_dtype": torch.bfloat16},
+            device_map="auto",
+        )
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        date_string = datetime.now().strftime("%Y-%m-%d-%H-%M")
+        os.makedirs(f"{experiment_path}/results", exist_ok=True)
+        output_file = f"{experiment_path}/results/{run_prefix}_results_{index+1}_{date_string}.jsonl"
+
+        with open(output_file, "w", encoding="utf-8") as f_out:  
+            with jsonlines.open(jsonl_file_path, "r") as reader:
+                batch_messages = []
+                for obj in tqdm(reader, desc=f"Processing {jsonl_file_path}"):
+                    prompt = obj.get("prompt")
+
+                    batch_messages.append([{"role": "user", "content": prompt}])
+                    if len(batch_messages) == batch_size:
+                        outputs = pipeline(
+                            batch_messages,
+                            max_new_tokens=500,
+                            temperature = temperature,
+                            do_sample=False,
+                            return_full_text=False,
+                            return_dict_in_generate=True,
+                            output_scores=response_logprobs
+                        )
+                        for output in outputs:
+                            json_line = format_results_huggingface(output, tokenizer, logprobs)
+                            f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
+                            f_out.flush()
+                        batch_messages=[]
+
 
 def retrieve_batch_job_google(batch_job_names):
     completed_states = set([
@@ -218,6 +345,11 @@ if __name__ == "__main__":
             list_of_job_names=list_of_job_ids,
             experiment_path=EXPERIMENT_PATH,
             run_prefix=EXPERIMENT_NAME,
+        )
+    elif company == "HuggingFace":
+        huggingface_login()
+        execute_tasks_save_huggingface(
+            list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH, run_prefix=EXPERIMENT_NAME
         )
     else:
         print(f"Company {company} is not supported.")
