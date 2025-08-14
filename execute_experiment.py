@@ -217,7 +217,7 @@ def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: s
                             batch_messages,
                             max_new_tokens=500,
                             temperature = temperature,
-                            do_sample=False,
+                            do_sample=True if temperature > 0 else False,
                             return_full_text=False,
                             return_dict_in_generate=True,
                             output_scores=response_logprobs
@@ -234,7 +234,7 @@ def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: s
                         batch_messages,
                         max_new_tokens=500,
                         temperature = temperature,
-                        do_sample=False,
+                        do_sample=True if temperature > 0 else False,
                         return_full_text=False,
                         return_dict_in_generate=True,
                         output_scores=response_logprobs
