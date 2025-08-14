@@ -5,6 +5,7 @@ experiments:
     prompt_path: "path/to/prompt.txt"
     model_name: "OpenAI model name, e.g., gpt-4o-mini-2024-07-18"
     company: "OpenAI"
+    #ft_dir: "" # for local fine-tunings
 
   experiment-ft-v1:
     dataset_path: "path/to/original/dataset.csv"
@@ -13,6 +14,8 @@ experiments:
     # prompt_assistant_path: ""
     model_name: "OpenAI fine-tuned model name, e.g., ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-ft-v1:AS8ft88F"
     company: "OpenAI" #google or openai
+    #ft_dir: "" # for local fine-tunings
+
 
   experiment-no-ft-local:
     dataset_path: "path/to/original/dataset.csv"
@@ -21,6 +24,17 @@ experiments:
     # prompt_assistant_path: ""
     model_name: "meta-llama/Llama-3.1-8B-Instruct"
     company: "Local"
+    #ft_dir: "" # for local fine-tunings
+
+  experiment-ft-local:
+    dataset_path: "path/to/original/dataset.csv"
+    dataset_column: "Name of the column containing the words"
+    prompt_path: "path/to/prompt.txt"
+    # prompt_assistant_path: ""
+    model_name: "meta-llama/Llama-3.1-8B-Instruct"
+    company: "Local"
+    #ft_dir: "familiarity_english_ft_v01_glas_mrc_mean_llama3.1-8B-Instruct_lora" #name of folder where it is the ft model inside finetuning/cache_model or finetuning_final/cache_model
+
 
 finetuning:
   experiment-ft-v1:

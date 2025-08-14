@@ -52,15 +52,16 @@ def get_tasks(word_list: list,
     logprobs: bool = True,
     top_logprobs: int = 5,
     prompt_key: str = "{WORD}",
-    company: str = "OpenAI") -> list:
+    company: str = "OpenAI",
+    ft_dir: str = None) -> list:
     if company == "OpenAI":
         return get_tasks_openai(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs, prompt_key)
     elif company == "Google":
         return get_tasks_gemini(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
     elif company == "HuggingFace":
-        return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
+        return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key, ft_dir)
     elif company == "Local":
-        return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
+        return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key, ft_dir)
     else:
         raise ValueError(f"Unknown company: {company}")
 
@@ -147,6 +148,7 @@ def get_tasks_huggingface(
     logprobs: bool = True,
     top_logprobs: int = 5,
     prompt_key: str = "{WORD}",
+    ft_dir: str = None,
 ) -> list:
     tasks = []
     for counter, word in enumerate(word_list, start=1):
@@ -158,6 +160,8 @@ def get_tasks_huggingface(
             "logprobs": top_logprobs,
             "model": model_version,
         }
+        if ft_dir:
+            task["ft_dir"] = ft_dir
         tasks.append(task)
     return tasks
     
@@ -215,6 +219,7 @@ if __name__ == "__main__":
         prompt_key=f"{{{config_args['dataset_column']}}}",
         model_version=config_args["model_name"],
         company=config_args["company"],
+        ft_dir=config_args.get("ft_dir", None),
     )
     list_of_batch_names = create_batches(
         tasks=tasks,

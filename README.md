@@ -1,5 +1,9 @@
 # Psycholinguistics framework
 
+## Features
+- Run esitamtion of word features and fine-tunings using OpenAI models, Gemini models, Hugging Face models using HF API or local deployment
+- Fine-tune new versions of LLMs
+
 ## Setting Up the framework
 1. Copy `apis_example.env` to `apis.env` and fill it with your model credentials
 2. Install dependencies with `pip install -r requirements.txt`
@@ -27,7 +31,7 @@ cat results/*.jsonl >> results/results.jsonl
 ```
 1. Execute `python3 generateResults.py <EXPERIMENT_PATH> {json, num, weighted_sum} [extra-otpions]` for the experiment -> for your own experiment is possible that you want to modify it. We recommend creating a new file for reproducibility -> it generates a .xlsx with the results
 
-### Make a fine-tuning (only for OpenAI):
+### Make a fine-tuning:
 1. Prepare the fine-tuning dataset by running `python3 create_finetuning_dataset.py <EXPERIMENT_PATH> <EXPERIMENT NAME>`.
 2. Fine-tune the model by running `python3 execute_finetune.py <EXPERIMENT_PATH> <FT_NAME>`.
 3. Calculate the correlation by running `python3 calculate_correlation.py <EXPERIMENT_PATH>`.

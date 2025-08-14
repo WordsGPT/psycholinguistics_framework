@@ -1,4 +1,5 @@
 venv/
+.venv/
 __pycache__/
 apis.env
 .DS_Store
@@ -7,3 +8,5 @@ results/
 results_final/
 batches/
 batches_final/
+
+cache_model/

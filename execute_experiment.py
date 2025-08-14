@@ -39,6 +39,7 @@ import transformers
 import torch
 import json
 from tqdm import tqdm
+from peft import PeftModel
 
 def read_list_of_batches(folder_name: str, run_prefix: str) -> list:
     file_names = [
@@ -183,40 +184,75 @@ def format_results_huggingface(output, tokenizer, counter, experiment_path, logp
     return json_line
 
 
-def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: str, run_prefix: str, batch_size = 5) -> list:
+
+
+
+def execute_tasks_save_model_hf_or_local(list_of_batch_names: list, experiment_path: str, run_prefix: str, batch_size=5) -> list:
     list_of_job_names = []
+
     for index, file_name in enumerate(list_of_batch_names):
         jsonl_file_path = f"{experiment_path}/batches/{file_name}"
+
+        # Read configuration from the first entry of the JSONL file
         with jsonlines.open(jsonl_file_path, "r") as reader:
             for obj in reader:
                 model_name = obj.get("model")
+                ft_dir = obj.get("ft_dir", None)  # optional LoRA directory
                 temperature = obj.get("temperature")
                 response_logprobs = obj.get("response_logprobs")
                 logprobs = obj.get("logprobs")
                 break
+
+        # Load base model
+        base_model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map="auto",
+            torch_dtype=torch.bfloat16
+        )
+
+        # Apply LoRA if directory is provided
+        if ft_dir:
+            ft_dir_final = f"{experiment_path}/finetuning/cache_model/{ft_dir}"
+            if not os.path.isdir(ft_dir_final):
+                ft_dir_final = f"{experiment_path}/finetuning_final/{ft_dir}/cache_model/{ft_dir}"
+            if not os.path.isdir(ft_dir_final):
+                raise ValueError(f"LoRA directory {ft_dir_final} does not exist.")
+            print(f"Loading LoRA-finetuned model from {ft_dir_final}")
+            model = PeftModel.from_pretrained(base_model, ft_dir_final)
+            tokenizer = AutoTokenizer.from_pretrained(ft_dir_final)
+        else:
+            model = base_model
+            print(f"Using base model {model_name} (no LoRA applied)")
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        # Create text-generation pipeline
         pipeline = transformers.pipeline(
             "text-generation",
-            model=model_name,
-            model_kwargs={"torch_dtype": torch.bfloat16},
+            model=model,
+            tokenizer=tokenizer,
             device_map="auto",
         )
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        # Prepare output file
         date_string = datetime.now().strftime("%Y-%m-%d-%H-%M")
         os.makedirs(f"{experiment_path}/results", exist_ok=True)
         output_file = f"{experiment_path}/results/{run_prefix}_results_{index+1}_{date_string}.jsonl"
 
-        with open(output_file, "w", encoding="utf-8") as f_out:  
+        with open(output_file, "w", encoding="utf-8") as f_out:
             with jsonlines.open(jsonl_file_path, "r") as reader:
                 batch_messages = []
                 counter = 0
+
+                # Process prompts in batches
                 for obj in tqdm(reader, desc=f"Processing {jsonl_file_path}"):
                     prompt = obj.get("prompt")
                     batch_messages.append([{"role": "user", "content": prompt}])
-                    if (len(batch_messages) == batch_size):
+
+                    if len(batch_messages) == batch_size:
                         outputs = pipeline(
                             batch_messages,
                             max_new_tokens=500,
-                            temperature = temperature,
+                            temperature=temperature,
                             do_sample=True if temperature > 0 else False,
                             return_full_text=False,
                             return_dict_in_generate=True,
@@ -227,13 +263,14 @@ def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: s
                             json_line = format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs)
                             f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
                             f_out.flush()
-                        batch_messages=[]
+                        batch_messages = []
 
-                if len(batch_messages) > 0:  # pending messages
+                # Process any remaining messages
+                if len(batch_messages) > 0:
                     outputs = pipeline(
                         batch_messages,
                         max_new_tokens=500,
-                        temperature = temperature,
+                        temperature=temperature,
                         do_sample=True if temperature > 0 else False,
                         return_full_text=False,
                         return_dict_in_generate=True,
@@ -244,7 +281,7 @@ def execute_tasks_save_huggingface(list_of_batch_names: list, experiment_path: s
                         json_line = format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs)
                         f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
                         f_out.flush()
-                    batch_messages=[]
+                    batch_messages = []
 
 
 def retrieve_batch_job_google(batch_job_names):
@@ -349,11 +386,11 @@ if __name__ == "__main__":
         )
     elif company == "HuggingFace":
         huggingface_login()
-        execute_tasks_save_huggingface(
+        execute_tasks_save_model_hf_or_local(
             list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH, run_prefix=EXPERIMENT_NAME
         )
     elif company == "Local":
-        execute_tasks_save_huggingface(
+        execute_tasks_save_model_hf_or_local(
             list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH, run_prefix=EXPERIMENT_NAME
         )
     else:

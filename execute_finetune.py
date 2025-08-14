@@ -73,7 +73,7 @@ def finetune_open_weight(file_path: str, model_name: str, suffix: str):
     tokenized_dataset = dataset.map(preprocess, remove_columns=["messages"])
     
     data_collator = DataCollatorForSeq2Seq(tokenizer, padding=True)
-    output_dir = f"{EXPERIMENT_PATH}/finetuning/{suffix}_lora"
+    output_dir = f"{EXPERIMENT_PATH}/finetuning/cache_model/{suffix}_lora"
     training_args = TrainingArguments(
         output_dir=output_dir,
         eval_strategy="epoch",
@@ -101,6 +101,15 @@ def finetune_open_weight(file_path: str, model_name: str, suffix: str):
         data_collator=data_collator,
     )
     trainer.train()
+    log_file = f"{EXPERIMENT_PATH}/finetuning/training_log.txt"
+    with open(log_file, "w") as f:
+        f.write("===== TRAINING PARAMETERS =====\n")
+        for k, v in vars(training_args).items():
+            f.write(f"{k}: {v}\n")
+        f.write("\n===== TRAINING LOGS =====\n")
+        for log in trainer.state.log_history:
+            f.write(f"{log}\n")
+    
     model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
 
