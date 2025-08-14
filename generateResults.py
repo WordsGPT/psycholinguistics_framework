@@ -176,6 +176,7 @@ def google_processing(results_content_file, batches_content_file):
         # Optional: compute weighted_sum and logprob for single numeric token outputs
         try:
             if mode in ("weighted_sum", "number"):
+                is_token_content_single_token_number = str(output_text).isdigit() and int(output_text) < 1000 # only positive integers and tokenizers until 999 with one token
                 candidates = result_item.get('candidates', [])
                 if candidates:
                     cand0 = candidates[0]
@@ -185,7 +186,8 @@ def google_processing(results_content_file, batches_content_file):
                         # Logprob of the chosen first token (likely the digit)
                         entry_result['logprob'] = chosen[0].get('logProbability')
                     top_list = lpr.get('topCandidates') or []
-                    if len(top_list) == 1 or (len(top_list) == 2 and "\n" in output_text): #google models return /n to close the conversation.
+
+                    if is_token_content_single_token_number: 
                         # Only use the first step (the numeric token) for weighted sum
                         top_first = top_list[0]
                         weighted_sum = 0.0
@@ -233,8 +235,10 @@ def huggingface_processing(results_content_file, batches_content_file):
                         #feature_value = '#N/D'
             elif mode == "weighted_sum" or mode == "number":
                 word_input = extract_word_input(combined_entry['prompt'])
-                # Only valid for responses of single token
-                if len(combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"]) == 1:
+                feature_value = combined_entry['response']['body']['choices'][0]['message']['content']
+                is_token_content_single_token_number = str(feature_value).isdigit() and int(feature_value) < 1000
+                # Only valid for responses of single util tokens
+                if is_token_content_single_token_number:
                     top_logprobs_list = combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"][0]['top_logprobs']
                     weighted_sum = 0
                     # Iterate over the list of top_logprobs that are numbers
@@ -246,7 +250,7 @@ def huggingface_processing(results_content_file, batches_content_file):
                         except ValueError:
                             pass
                     logprob = combined_entry['response']['body']['choices'][0]['logprobs']['content'][0]['logprob']
-                feature_value = combined_entry['response']['body']['choices'][0]['message']['content']
+                
 
             entry_result['word'] = word_input
             # entry_result['custom_id'] = custom_id

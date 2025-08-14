@@ -77,6 +77,13 @@ experiments:
     model_name: "meta-llama/Llama-3.1-8B-Instruct"
     company: "Local"
 
+  familiarity_english_v05_return_json_llama3.1-8B-Instruct:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v04_return_json.txt"
+    model_name: "meta-llama/Llama-3.1-8B-Instruct"
+    company: "Local"
+
 
   
 
