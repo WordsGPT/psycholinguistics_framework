@@ -46,9 +46,23 @@ finetuning:
     prompt_path: "path/to/prompt.txt"
     # prompt_assistant_path: ""
     company: "OpenAI"
-
-
     # execute finetuning:
     ft_formatted_dataset_path: "path/to/finetuning/formatted/dataset.jsonl"
     model_name: "OpenAI base model name, e.g., gpt-4o-mini-2024-07-18"
     especial_suffix: "suffix for the fine-tuned model"
+
+  experiment-ft-google:
+    # create finetuning dataset:
+    ft_dataset_path: "path/to/finetuning/dataset.csv"
+    train_split_percentage: "Float, percentage of the dataset to use for training"
+    random_state: "Integer, random seed, usually 42"
+    answer_column: "Name of the column containing the answers"
+    prompt_path: "path/to/prompt.txt"
+    # prompt_assistant_path: ""
+    company: "Google"
+    # execute finetuning:
+    model_name: "OpenAI base model name, e.g., gpt-4o-mini-2024-07-18"
+    especial_suffix: "suffix for the fine-tuned model"
+    project_name: "xx" # only for google models. Obtained from https://console.cloud.google.com/
+    bucket_name: "xx" # only for google models. Obtained from https://console.cloud.google.com/
+    #A GOOGLE_APPLICATION_CREDENTIALS json file is also needed to access the google account.
