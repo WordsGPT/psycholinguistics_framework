@@ -20,6 +20,11 @@ def google_login():
     client = genai.Client(api_key=api_key)
     return client
 
+
+def vertec_login():
+    load_dotenv("apis.env")
+    google_credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_credentials
     
 def huggingface_login():
     load_dotenv("apis.env")

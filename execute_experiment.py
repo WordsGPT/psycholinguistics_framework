@@ -30,7 +30,7 @@ from datetime import datetime
 from google import genai
 from google.genai import types
 
-from utils import load_config, openai_login, google_login, huggingface_login
+from utils import load_config, openai_login, google_login, huggingface_login, vertec_login
 
 import jsonlines
 from transformers import AutoModelForCausalLM, AutoTokenizer, logging
@@ -40,6 +40,10 @@ import torch
 import json
 from tqdm import tqdm
 from peft import PeftModel
+import vertexai
+from google.cloud import aiplatform, storage
+from vertexai.tuning import sft
+
 
 def read_list_of_batches(folder_name: str, run_prefix: str) -> list:
     file_names = [
@@ -108,24 +112,96 @@ def cancel_batch_job_google(batch_job_name: str):
     client.batches.cancel(name=batch_job_name)
 
 
+def add_role_to_jsonl(input_file: str, output_file: str, default_role: str = "user"):
+    """
+    Adjusts the JSONL data format to meet the requirements for batch processing using a fine-tuned Google model.
+    """
+    with open(input_file, "r", encoding="utf-8") as fin, \
+         open(output_file, "w", encoding="utf-8") as fout:
+
+        for line in fin:
+            data = json.loads(line)
+            if "request" in data and "contents" in data["request"]:
+                for content in data["request"]["contents"]:
+                    if "role" not in content:
+                        content["role"] = default_role
+            fout.write(json.dumps(data, ensure_ascii=False) + "\n")
+
+
 def execute_tasks_google(list_of_batch_names: list, experiment_path: str) -> list:
-    list_of_job_names = []
-    for file_name in list_of_batch_names:
-        uploaded_file = client.files.upload(
-            file=open(f"{experiment_path}/batches/{file_name}", "rb"),
-            config=types.UploadFileConfig(display_name=file_name, mime_type='jsonl')
-        )
-        print(f"Uploaded file: {uploaded_file.name}")
-        batch_job = client.batches.create(
-            model=config_args.get("model_name"),
-            src=uploaded_file.name,
-            config={
-                'display_name': f"{experiment_path}_{file_name}",
-            },
-        )
-        print(f"Created batch job: {batch_job.name}")
-        list_of_job_names.append(batch_job.name)
-    return list_of_job_names
+    if config_args.get("model_name").startswith('projects'):
+        resource_names = []
+        for file_name in list_of_batch_names:
+            fine_tuning_job_id = config_args.get("model_name")
+            # projects/139736761406/locations/us-central1/tuningJobs/5827228369548214272
+            parts = fine_tuning_job_id.split('/')
+            PROJECT_ID = parts[1]
+            LOCATION = parts[3]
+            tuning_job_id = parts[5]
+            vertexai.init(project=PROJECT_ID, location=LOCATION)
+            BUCKET_NAME = config_args.get("bucket_name")
+            date_string = datetime.now().strftime("%Y-%m-%d-%H-%M")
+            
+            GCS_OUTPUT_PREFIX = f"gs://{BUCKET_NAME}/batch_outputs_{date_string}/"
+            LOCAL_FILE_original = f"{experiment_path}/batches/{file_name}"
+            LOCAL_FILE = f"{experiment_path}/batches/Add_role_{file_name}"
+            add_role_to_jsonl(LOCAL_FILE_original, LOCAL_FILE)
+            
+            sft_job = sft.SupervisedTuningJob(fine_tuning_job_id)
+            client = genai.Client(
+                vertexai=True,
+                project=PROJECT_ID,
+                location=LOCATION
+            )
+            
+            tj = client.tunings.get(name=fine_tuning_job_id)
+            MODEL_ID = tj.tuned_model.model.split('/')[-1]
+            
+    
+            def upload_to_gcs(local_file, bucket_name, destination_blob_name):
+                client = storage.Client(project=PROJECT_ID)
+                bucket = client.bucket(bucket_name)
+                blob = bucket.blob(destination_blob_name)
+                blob.upload_from_filename(local_file)
+                print(f"Uploaded file: gs://{bucket_name}/{destination_blob_name}")
+                
+            upload_file_path = f"batch_inputs/{file_name.replace('.jsonl','')}_{date_string}.jsonl"
+            upload_to_gcs(LOCAL_FILE, BUCKET_NAME, upload_file_path)
+            GCS_INPUT_PATH = f"gs://{BUCKET_NAME}/batch_inputs/{file_name.replace('.jsonl','')}_{date_string}.jsonl"
+            
+            aiplatform.init(project=PROJECT_ID, location=LOCATION)
+            
+            model_resource_name = f"projects/{PROJECT_ID}/locations/{LOCATION}/models/{MODEL_ID}"
+            
+            batch_prediction_job = aiplatform.BatchPredictionJob.create(
+                job_display_name="gemini-finetune-batch",
+                model_name=model_resource_name,
+                gcs_source=[GCS_INPUT_PATH],
+                gcs_destination_prefix=GCS_OUTPUT_PREFIX,
+                instances_format="jsonl",
+                predictions_format="jsonl"
+            )
+            resource_names.append(batch_prediction_job.resource_name)
+        return resource_names
+    
+    else:
+        list_of_job_names = []
+        for file_name in list_of_batch_names:
+            uploaded_file = client.files.upload(
+                file=open(f"{experiment_path}/batches/{file_name}", "rb"),
+                config=types.UploadFileConfig(display_name=file_name, mime_type='jsonl')
+            )
+            print(f"Uploaded file: {uploaded_file.name}")
+            batch_job = client.batches.create(
+                model=config_args.get("model_name"),
+                src=uploaded_file.name,
+                config={
+                    'display_name': f"{experiment_path}_{file_name}",
+                },
+            )
+            print(f"Created batch job: {batch_job.name}")
+            list_of_job_names.append(batch_job.name)
+        return list_of_job_names
 
 
 def format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs=5):
@@ -300,6 +376,36 @@ def retrieve_batch_job_google(batch_job_names):
             break
     return finished
 
+def retrieve_batch_job_google_finetuned(batch_job_names):
+
+    finished_states = {
+        aiplatform.gapic.JobState.JOB_STATE_SUCCEEDED,
+        aiplatform.gapic.JobState.JOB_STATE_FAILED,
+        aiplatform.gapic.JobState.JOB_STATE_CANCELLED,
+        aiplatform.gapic.JobState.JOB_STATE_EXPIRED
+    }
+    parts = batch_job_names[0].split('/')
+    PROJECT_ID = parts[1]
+    LOCATION = parts[3]
+    finished=True
+    client = aiplatform.gapic.JobServiceClient(
+        client_options={"api_endpoint": f"{LOCATION}-aiplatform.googleapis.com"}
+    )
+    jobs = []
+    for batch_job_name in batch_job_names:
+        parts = batch_job_names[0].split('/')
+        BATCH_JOB_ID = parts[5]
+        name = client.batch_prediction_job_path(
+            project=PROJECT_ID, location=LOCATION, batch_prediction_job=BATCH_JOB_ID
+        )
+        job = client.get_batch_prediction_job(name=name)
+        jobs.append(job)
+        if job.state not in finished_states:
+            finished = False
+            break
+    return finished, jobs
+
+
 def save_results_google(list_of_job_names: list, experiment_path: str, run_prefix: str):
     os.makedirs(f"{experiment_path}/results", exist_ok=True)
     date_string = datetime.now().strftime("%Y-%m-%d-%H-%M")
@@ -319,6 +425,32 @@ def save_results_google(list_of_job_names: list, experiment_path: str, run_prefi
                     f.write(file_content)
         else:
             print(f"Batch job {batch_job_name} did not succeed.")
+
+
+def save_results_google_finetuned(jobs: list, experiment_path: str, run_prefix: str):
+    os.makedirs(f"{experiment_path}/results", exist_ok=True)
+    date_string = datetime.now().strftime("%Y-%m-%d-%H-%M")
+
+    
+    for index, job in enumerate(jobs):
+        
+        if job.state.name == 'JOB_STATE_SUCCEEDED':
+            gcs_output_dir = job.output_info.gcs_output_directory
+            bucket_name = gcs_output_dir.replace("gs://", "").split("/")[0]
+            prefix = "/".join(gcs_output_dir.replace("gs://", "").split("/")[1:])
+            
+            storage_client = storage.Client(project=config_args['project_name'])
+            bucket = storage_client.bucket(bucket_name)
+            
+            for blob in bucket.list_blobs(prefix=prefix):
+                if blob.name.endswith("predictions.jsonl"):
+                    save_path = f"{experiment_path}/results/{run_prefix}_results_{index}_{date_string}.jsonl"
+                    print("Downloading result file content...")
+                    blob.download_to_filename(save_path)
+
+        else:
+            print(f"Batch job {job.name} did not succeed.")
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -368,22 +500,42 @@ if __name__ == "__main__":
             run_prefix=EXPERIMENT_NAME,
         )
     elif company == "Google":
-        client = google_login()
-        list_of_job_ids = execute_tasks_google(
-            list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH
-        )
-        # wait for batch jobs to finish
-        while not retrieve_batch_job_google(batch_job_names=list_of_job_ids):
-            wait_time = 300
-            print(f"Waiting for {wait_time} seconds")
-            time.sleep(wait_time)
-            pass
+        if config_args.get("model_name").startswith('projects'):
+            vertec_login()
+            list_of_job_ids = execute_tasks_google(
+                list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH
+            )
+            while True:
+                finished, jobs = retrieve_batch_job_google_finetuned(batch_job_names=list_of_job_ids)
+                if finished:
+                    break
+                wait_time = 300
+                print(f"Waiting for {wait_time} seconds")
+                time.sleep(wait_time)
+                
+            save_results_google_finetuned(
+                jobs=jobs,
+                experiment_path=EXPERIMENT_PATH,
+                run_prefix=EXPERIMENT_NAME,
+            )
 
-        save_results_google(
-            list_of_job_names=list_of_job_ids,
-            experiment_path=EXPERIMENT_PATH,
-            run_prefix=EXPERIMENT_NAME,
-        )
+        else:
+            client = google_login()
+            list_of_job_ids = execute_tasks_google(
+                list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH
+            )
+            # wait for batch jobs to finish
+            while not retrieve_batch_job_google(batch_job_names=list_of_job_ids):
+                wait_time = 300
+                print(f"Waiting for {wait_time} seconds")
+                time.sleep(wait_time)
+                pass
+    
+            save_results_google(
+                list_of_job_names=list_of_job_ids,
+                experiment_path=EXPERIMENT_PATH,
+                run_prefix=EXPERIMENT_NAME,
+            )
     elif company == "HuggingFace":
         huggingface_login()
         execute_tasks_save_model_hf_or_local(

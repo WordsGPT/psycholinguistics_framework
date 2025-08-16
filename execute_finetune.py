@@ -21,12 +21,17 @@ This will submit a fine-tuning job using the specified dataset and model configu
 
 import sys
 
-from utils import load_config, openai_login, read_yaml, huggingface_login
+from utils import load_config, openai_login, read_yaml, huggingface_login, vertec_login
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments, DataCollatorForSeq2Seq
 from peft import LoraConfig, TaskType, get_peft_model
 from datasets import load_dataset
 from datasets import DatasetDict
+import json
+from google.cloud import storage
+import vertexai
+from vertexai.tuning import sft
+import os
 
 
 def create_finetune(file_path: str, model_name: str, suffix: str):
@@ -35,6 +40,42 @@ def create_finetune(file_path: str, model_name: str, suffix: str):
         training_file=file_object.id, model=model_name, suffix=suffix
     )
     return finetune_job
+
+
+def create_finetune_google(file_path: str, model_name: str, suffix: str):
+    processed_file = file_path.replace('.jsonl', '_processed.jsonl')
+    with open(file_path, "r", encoding="utf-8") as fin, \
+     open(processed_file, "w", encoding="utf-8") as fout:
+        for line in fin:
+            data = json.loads(line)
+            new_entry = {"contents": []}
+            for msg in data.get("messages", []):
+                role = msg["role"]
+                if role == "assistant":
+                    role = "model"
+                new_entry["contents"].append({
+                    "role": role,
+                    "parts": [{"text": msg["content"]}]
+                })
+            fout.write(json.dumps(new_entry, ensure_ascii=False) + "\n")
+
+    vertexai.init(project=config_args["project_name"], location="us-central1")
+    bucket_name = config_args["bucket_name"]
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(os.path.basename(processed_file))
+    blob.upload_from_filename(processed_file)
+    gcs_path = f"gs://{bucket_name}/{os.path.basename(processed_file)}"
+
+    sft_tuning_job = sft.train(
+        source_model=model_name,
+        # 1.5 and 2.0 models use the same JSONL format
+        train_dataset=gcs_path,
+    )
+
+    
+    return sft_tuning_job
+
 
 def finetune_open_weight(file_path: str, model_name: str, suffix: str):
     device = torch.accelerator.current_accelerator().type if hasattr(torch, "accelerator") else "cuda"
@@ -141,6 +182,13 @@ if __name__ == "__main__":
             suffix=config_args["especial_suffix"],
         )
         # https://platform.openai.com/finetune/ftjob-QPje3bZiOQ4shvQs6rKnRkyn
+    elif company == "Google":
+        vertec_login()
+        finetune_job = create_finetune_google(
+            file_path=f"{EXPERIMENT_PATH}/finetuning/{config_args['dataset_finetune_name']}",
+            model_name=config_args["model_name"],
+            suffix=config_args["especial_suffix"],
+        )
     elif company == "HuggingFace":
         huggingface_login()
 
