@@ -133,6 +133,16 @@ experiments:
     company: "Local"
     ft_dir: "familiarity_english_ft_v01_glas_mrc_mean_llama3.1-8B-Instruct_lora"
 
+  familiarity_english_ft_v01_glas_mrc_mean_Google:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "projects/139736761406/locations/us-central1/tuningJobs/520303556692017152"
+    project_name: "psycholinguistics"
+    bucket_name: "psycholinguistics-upm"
+    company: "Google"
+    #ft_dir: "" # for local fine-tunings
+
 
 finetuning:
   familiarity_english_ft_v01_glas:
@@ -198,6 +208,22 @@ finetuning:
     # ft:gpt-4o-mini-2024-07-18:ging-upm:familiarity-english-ft-v01-glas-mrc-mean:C1uS3eTO
     company: "Local"
 
+  familiarity_english_ft_v01_glas_mrc_mean_Google:
+    # create finetuning dataset:
+    ft_dataset_path: "1_train_random_MRC_Glas.xlsx"
+    train_split_percentage: 1
+    random_state: 42
+    answer_column: "FAM_Glas_MRC_mean"
+    prompt_path: "english_v02_standard_prompt.txt"
+    # prompt_assistant_path: ""
+    # execute finetuning:
+    dataset_finetune_name: "Glasgow_MRC_joint_norms_inner_join_english_ft_v01_glas_mrc_mean_google.jsonl"
+    model_name: "gemini-2.5-flash"
+    especial_suffix: "familiarity_english_ft_v01_glas_mrc_mean_google"
+    # ft:
+    project_name: "psycholinguistics"
+    bucket_name: "psycholinguistics-upm"
+    company: "Google"
 
 
 
