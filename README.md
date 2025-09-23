@@ -1,6 +1,8 @@
 # Psycholinguistics framework
 
-## Features
+Software required: python 3.11
+
+## Features
 - Run esitamtion of word features and fine-tunings using OpenAI models, Gemini models, Hugging Face models using HF API or local deployment
 - Fine-tune new versions of LLMs
 
