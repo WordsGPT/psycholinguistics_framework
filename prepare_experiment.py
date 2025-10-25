@@ -218,6 +218,7 @@ if __name__ == "__main__":
         model_version=config_args["model_name"],
         company=config_args["company"],
         ft_dir=config_args.get("ft_dir", None),
+        top_logprobs=config_args.get("top_logprobs", 5),
     )
     list_of_batch_names = create_batches(
         tasks=tasks,

@@ -83,14 +83,17 @@ def openAI_processing(results_content_file, batches_content_file):
                 if len(combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"]) == 1:
                     top_logprobs_list = combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"][0]['top_logprobs']
                     weighted_sum = 0
+                    total_prob = 0
                     # Iterate over the list of top_logprobs that are numbers
                     for top_logprob in top_logprobs_list:
                         try:
                             token_value = int(top_logprob['token'])
                             logprob_value = top_logprob['logprob']
                             weighted_sum += token_value * np.exp(float(logprob_value))
+                            total_prob += np.exp(float(logprob_value))
                         except ValueError:
                             pass
+                    weighted_sum /= total_prob if total_prob > 0 else 1
                     logprob = combined_entry['response']['body']['choices'][0]['logprobs']['content'][0]['logprob']
                 feature_value = combined_entry['response']['body']['choices'][0]['message']['content']
 
@@ -191,14 +194,17 @@ def google_processing(results_content_file, batches_content_file):
                         # Only use the first step (the numeric token) for weighted sum
                         top_first = top_list[0]
                         weighted_sum = 0.0
+                        total_prob = 0
                         for tc in top_first.get('candidates', []):
                             tok = tc.get('token')
                             lp = tc.get('logProbability')
                             try:
                                 tok_val = int(tok)
                                 weighted_sum += tok_val * float(np.exp(float(lp)))
+                                total_prob += float(np.exp(float(lp)))
                             except Exception:
                                 pass
+                        weighted_sum /= total_prob if total_prob > 0 else 1
                         entry_result['weighted_sum'] = weighted_sum
         except Exception:
             # Make logprob/weighted_sum optional; ignore failures silently
@@ -241,14 +247,17 @@ def huggingface_processing(results_content_file, batches_content_file):
                 if is_token_content_single_token_number:
                     top_logprobs_list = combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"][0]['top_logprobs']
                     weighted_sum = 0
+                    total_prob = 0
                     # Iterate over the list of top_logprobs that are numbers
                     for top_logprob in top_logprobs_list:
                         try:
                             token_value = int(top_logprob['token'])
                             logprob_value = top_logprob['logprob']
                             weighted_sum += token_value * np.exp(float(logprob_value))
+                            total_prob += np.exp(float(logprob_value))
                         except ValueError:
                             pass
+                    weighted_sum /= total_prob if total_prob > 0 else 1
                     logprob = combined_entry['response']['body']['choices'][0]['logprobs']['content'][0]['logprob']
                 
 
