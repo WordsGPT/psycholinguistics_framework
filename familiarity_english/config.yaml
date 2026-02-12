@@ -126,7 +126,7 @@ experiments:
     #ft_dir: "" # for local fine-tunings
 
   familiarity_english_ft_v01_glas_mrc_mean_llama3.1-8B-Instruct:
-    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_path: "1_test_random_MRC_Glas.xlsx"
     dataset_column: "Word"
     prompt_path: "english_v02_standard_prompt.txt"
     model_name: "meta-llama/Llama-3.1-8B-Instruct"
@@ -134,7 +134,7 @@ experiments:
     ft_dir: "familiarity_english_ft_v01_glas_mrc_mean_llama3.1-8B-Instruct_lora"
 
   familiarity_english_ft_v01_glas_mrc_mean_Google:
-    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_path: "1_test_random_MRC_Glas.xlsx"
     dataset_column: "Word"
     prompt_path: "english_v02_standard_prompt.txt"
     model_name: "projects/139736761406/locations/us-central1/tuningJobs/520303556692017152"
