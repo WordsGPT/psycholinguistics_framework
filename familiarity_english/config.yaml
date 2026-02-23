@@ -17,6 +17,12 @@ experiments:
     company: "OpenAI"
     #ft_dir: "" # for local fine-tunings
 
+  familiarity_english_v02_standard_prompt_gemini:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "gemini-2.5-flash"
+    company: "Google"
   
   familiarity_english_v04_return_word:
     dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
