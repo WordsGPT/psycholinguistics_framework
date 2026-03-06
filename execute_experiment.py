@@ -48,7 +48,7 @@ from vertexai.tuning import sft
 def read_list_of_batches(folder_name: str, run_prefix: str) -> list:
     file_names = [
         file
-        for file in os.listdir(f"./{folder_name}/batches")
+        for file in os.listdir(f"./{folder_name}/batchesA")
         if file.startswith(run_prefix)
     ]
     print(f"Batches to run: {file_names}")
@@ -128,7 +128,7 @@ def add_role_to_jsonl(input_file: str, output_file: str, default_role: str = "us
             fout.write(json.dumps(data, ensure_ascii=False) + "\n")
 
 
-def execute_tasks_google(list_of_batch_names: list, experiment_path: str) -> list:
+def execute_tasks_google(client, list_of_batch_names: list, experiment_path: str) -> list:
     if config_args.get("model_name").startswith('projects'):
         resource_names = []
         for file_name in list_of_batch_names:
@@ -188,7 +188,7 @@ def execute_tasks_google(list_of_batch_names: list, experiment_path: str) -> lis
         list_of_job_names = []
         for file_name in list_of_batch_names:
             uploaded_file = client.files.upload(
-                file=open(f"{experiment_path}/batches/{file_name}", "rb"),
+                file=open(f"{experiment_path}/batchesA/{file_name}", "rb"),
                 config=types.UploadFileConfig(display_name=file_name, mime_type='jsonl')
             )
             print(f"Uploaded file: {uploaded_file.name}")
@@ -522,8 +522,7 @@ if __name__ == "__main__":
         else:
             client = google_login()
             list_of_job_ids = execute_tasks_google(
-                list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH
-            )
+                client, list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH )
             # wait for batch jobs to finish
             while not retrieve_batch_job_google(batch_job_names=list_of_job_ids):
                 wait_time = 300

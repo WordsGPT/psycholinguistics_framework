@@ -224,4 +224,5 @@ if __name__ == "__main__":
         tasks=tasks,
         experiment_path=EXPERIMENT_PATH,
         run_prefix=EXPERIMENT_NAME,
+        chunk_size = 1
     )
