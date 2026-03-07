@@ -117,22 +117,27 @@ if __name__ == "__main__":
         experiment_output = client.models.generate_content(
            model = model, contents = contents[index], config = content_config
         )
-    #####################
-        print( f"Answer to prompt: {experiment_output}" )
-    #####################
+        
+        # Debug looking for returned fields
+        # breakpoint()
 
         # Get experiment_value from experiment_output
         experiment_value = 'N/D'
         try:
-           experiment_value = int(experiment_output.text)
+           experiment_value = int(experiment_output.text[0])
         except ValueError:
-           print( f"Unspected answer to prompt: {experiment_output}" )
+           print( f"Unexpected answer to prompt: {experiment_output.parts[0]}" )
 
         if GET_LOGPROBS:
-
-            row = { f"{prompt_key_clean}": f"{word}", f"{experiment_name_prefix}": experiment_value }
+            logprop_results = experiment_output.candidates[0].\
+                logprobs_result.top_candidates[0].candidates
+            logprob_value = 0
+            row = { f"{prompt_key_clean}": f"{word}", \
+                    f"{experiment_name_prefix}": experiment_value, \
+                    f"{experiment_name_prefix}_logprob": logprob_value }
         else:
-            row = { f"{prompt_key_clean}": f"{word}", f"{experiment_name_prefix}": experiment_value }
+            row = { f"{prompt_key_clean}": f"{word}", \
+                    f"{experiment_name_prefix}": experiment_value }
         
         results.append( row )
         print( index, row, flush = True )
