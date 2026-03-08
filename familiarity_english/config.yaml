@@ -17,18 +17,27 @@ experiments:
     company: "OpenAI"
     #ft_dir: "" # for local fine-tunings
 
-  familiarity_english_v02_standard_prompt_gemini:
+
+  #################################################################
+  familiarity_english_std_prpt_gemini-2.0-flash:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "gemini-2.0-flash"
+    #model_name: "gemini-2.5-pro"
+    #model_name: "gemini-2.5-flash"
+    company: "Google"
+  
+  familiarity_english_std_prmpt_gemini-3.1-flash-lite-preview:
     dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
     dataset_column: "Word"
     prompt_path: "english_v02_standard_prompt.txt"
     #model_name: "gemini-3.1-pro-preview"
-    #model_name: "gemini-3-flash-preview"
-    #model_name: "gemini-3.1-flash-lite-preview"
-    #model_name: "gemini-2.5-pro"
-    #model_name: "gemini-2.5-flash"
-    model_name: "gemini-2.0-flash"
+    model_name: "gemini-3.1-flash-lite-preview"
     company: "Google"
+  #################################################################
   
+
   familiarity_english_v04_return_word:
     dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
     dataset_column: "Word"
@@ -36,7 +45,6 @@ experiments:
     model_name: "gpt-4o-mini-2024-07-18"
     company: "OpenAI"
     #ft_dir: "" # for local fine-tunings
-
 
   familiarity_english_v05_return_json:
     dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"

@@ -13,6 +13,7 @@ from google import genai
 from google.genai import types
 
 from utils import load_config, google_login, read_txt
+import math
 
 def load_word_list(file_path: str, column_name: str) -> list:
     if file_path.endswith(".csv"):
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     if company != "Google":
         raise ValueError(f"Company not implemented: {company}")
 
-    # Get queries words from Excel file
+    # Get prompt words from Excel file
     word_list = load_word_list(
         file_path=f"{EXPERIMENT_PATH}/data/{config_args['dataset_path']}",
         column_name=config_args.get("dataset_column", "word"),
@@ -112,7 +113,7 @@ if __name__ == "__main__":
     if experiment_name_underscore_pos > 1:
         experiment_name_prefix = EXPERIMENT_NAME[0:experiment_name_underscore_pos]
 
-    for index, word in enumerate(word_list[81:82]) :
+    for index, word in enumerate(word_list) :
 
         experiment_output = client.models.generate_content(
            model = model, contents = contents[index], config = content_config
@@ -129,9 +130,26 @@ if __name__ == "__main__":
            print( f"Unexpected answer to prompt: {experiment_output.parts[0]}" )
 
         if GET_LOGPROBS:
-            logprop_results = experiment_output.candidates[0].\
+            logprob_results = experiment_output.candidates[0].\
                 logprobs_result.top_candidates[0].candidates
+            
             logprob_value = 0
+            total_prob = 0
+
+            for logprob_r in logprob_results:
+                text_value = logprob_r.token
+                text_prob = logprob_r.log_probability
+                try:
+                    #print( f"logprob: {logprob_r}, {text_value}, {text_prob}" )
+                    value = int(text_value)
+                    prob = math.exp(float(text_prob))
+                    logprob_value += value * prob
+                    total_prob += prob
+                except ValueError:
+                    #print( f"Wrong logprob: {logprob_r}" )
+                    pass
+            logprob_value = logprob_value / total_prob if logprob_value != 0 and total_prob != 0 else logprob_value = 'N/D'
+
             row = { f"{prompt_key_clean}": f"{word}", \
                     f"{experiment_name_prefix}": experiment_value, \
                     f"{experiment_name_prefix}_logprob": logprob_value }
@@ -143,7 +161,12 @@ if __name__ == "__main__":
         print( index, row, flush = True )
 
     df = pd.DataFrame(results)
+
+    logprob_text = ""
+    if (GET_LOGPROBS == False): logprob_text = "_NO-logprob"
+
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
-    output_file = output_file = f'{EXPERIMENT_PATH}/output/{EXPERIMENT_NAME}_{timestamp}.xlsx'
+
+    output_file = output_file = f'{EXPERIMENT_PATH}/output/{EXPERIMENT_NAME}{logprob_text}_{timestamp}.xlsx'
     df.to_excel(output_file, index=False)
     print( f"Written: {output_file}" )
