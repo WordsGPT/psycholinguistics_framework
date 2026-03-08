@@ -148,7 +148,10 @@ if __name__ == "__main__":
                 except ValueError:
                     #print( f"Wrong logprob: {logprob_r}" )
                     pass
-            logprob_value = logprob_value / total_prob if logprob_value != 0 and total_prob != 0 else logprob_value = 'N/D'
+
+            if logprob_value != 0 and total_prob != 0:
+               logprob_value /= total_prob
+            else: logprob_value = 'N/D'
 
             row = { f"{prompt_key_clean}": f"{word}", \
                     f"{experiment_name_prefix}": experiment_value, \
