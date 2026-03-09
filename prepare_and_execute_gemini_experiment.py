@@ -14,6 +14,7 @@ from google.genai import types
 
 from utils import load_config, google_login, read_txt
 import math
+import time
 
 def load_word_list(file_path: str, column_name: str) -> list:
     if file_path.endswith(".csv"):
@@ -36,7 +37,7 @@ if __name__ == "__main__":
                GET_LOGPROBS = sys.argv[3]
                if GET_LOGPROBS != 'True':
                   GET_LOGPROBS = False
-    
+
             else: GET_LOGPROBS = True
         else:
             EXPERIMENT_NAME = "original"
@@ -106,7 +107,7 @@ if __name__ == "__main__":
 
     # Remove ... from prompt_key:
     prompt_key_clean = prompt_key.replace('{', '').replace('}', '')
-    
+
     # Build the results column name:
     experiment_name_underscore_pos = EXPERIMENT_NAME.find('_')
     experiment_name_prefix = EXPERIMENT_NAME
@@ -115,10 +116,16 @@ if __name__ == "__main__":
 
     for index, word in enumerate(word_list) :
 
-        experiment_output = client.models.generate_content(
-           model = model, contents = contents[index], config = content_config
-        )
-        
+        generate_content_end = False
+        while generate_content_end == False :
+            try :
+                experiment_output = client.models.generate_content(
+                model = model, contents = contents[index], config = content_config)
+                generate_content_end = True
+            except e:
+                print(f"Error on generate_content: {experiment_output}\nSleeping for 5 senconds.", flush = True)
+                time.sleep(5)
+
         # Debug looking for returned fields
         # breakpoint()
 
@@ -127,12 +134,12 @@ if __name__ == "__main__":
         try:
            experiment_value = int(experiment_output.text[0])
         except ValueError:
-           print( f"Unexpected answer to prompt: {experiment_output.parts[0]}" )
+           print( f"Unexpected answer to prompt: {experiment_output.parts[0]}", flush = True )
 
         if GET_LOGPROBS:
             logprob_results = experiment_output.candidates[0].\
                 logprobs_result.top_candidates[0].candidates
-            
+
             logprob_value = 0
             total_prob = 0
 
@@ -159,7 +166,7 @@ if __name__ == "__main__":
         else:
             row = { f"{prompt_key_clean}": f"{word}", \
                     f"{experiment_name_prefix}": experiment_value }
-        
+
         results.append( row )
         print( index, row, flush = True )
 
