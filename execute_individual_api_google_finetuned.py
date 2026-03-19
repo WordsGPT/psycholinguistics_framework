@@ -44,7 +44,8 @@ def generate():
 
 batches = client.batches.list()
 for b in batches:
-    print(b.id, b.state)
+    #print(b.id, b.state)
+    print(b)
 
 
 if __name__ == "__main__":

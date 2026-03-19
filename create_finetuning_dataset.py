@@ -147,12 +147,19 @@ if __name__ == "__main__":
         print(f"The file {full_ft_dataset_path} is not a CSV or Excel file.")
         exit()
 
+    #############################
+    percentage=config_finetuning_args["train_split_percentage"]
+    print(percentage)
+    #############################
+    
     train, test = create_division_dataset(
         df=df,
         experiment_path=EXPERIMENT_PATH,
-        percentage=config_finetuning_args["train_split_percentage"],
+        percentage=percentage,
         random_state=config_finetuning_args["random_state"],
     )
+
+    exit(0)
 
     create_jsonl(
         df=train,
