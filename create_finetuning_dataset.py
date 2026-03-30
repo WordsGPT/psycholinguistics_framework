@@ -92,7 +92,8 @@ def create_jsonl(
     data = df.to_dict(orient="records")
     current_time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     with open(
-        f"{experiment_path}/finetuning/{dataset_name.split('.')[0]}_{current_time_str}.jsonl",
+        #f"{experiment_path}/finetuning/{dataset_name.split('.')[0]}_{current_time_str}.jsonl",
+        f"{experiment_path}/finetuning/{dataset_name.split('.')[0]}.jsonl",
         "w",
     ) as file:
         for entry in data:
@@ -147,19 +148,12 @@ if __name__ == "__main__":
         print(f"The file {full_ft_dataset_path} is not a CSV or Excel file.")
         exit()
 
-    #############################
-    percentage=config_finetuning_args["train_split_percentage"]
-    print(percentage)
-    #############################
-    
     train, test = create_division_dataset(
         df=df,
         experiment_path=EXPERIMENT_PATH,
-        percentage=percentage,
+        percentage=config_finetuning_args["train_split_percentage"],
         random_state=config_finetuning_args["random_state"],
     )
-
-    exit(0)
 
     create_jsonl(
         df=train,

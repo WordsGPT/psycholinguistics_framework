@@ -245,7 +245,7 @@ finetuning:
     company: "Google"
 
   #################################################################
-  familiarity_english_ft_v01_glas_mrc_mean_Gemini2_0:
+  familiarity_english_ft_v01_glas_mrc_mean_Gemini2_5:
     # create finetuning dataset:
     ft_dataset_path: "1_train_random_MRC_Glas.xlsx"
     train_split_percentage: 1
@@ -254,14 +254,13 @@ finetuning:
     prompt_path: "english_v02_standard_prompt.txt"
     # prompt_assistant_path: ""
     # execute finetuning:
-    dataset_finetune_name: "Glasgow_MRC_joint_norms_inner_join_english_ft_v01_glas_mrc_mean_Gemini2_0.jsonl"
-    model_name: "gemini-2.0-flash"
-    especial_suffix: "familiarity_english_ft_v01_glas_mrc_mean_Gemini2_0"
+    dataset_finetune_name: "Glasgow_MRC_joint_norms_inner_join_english_ft_v01_glas_mrc_mean_Gemini2_5.jsonl"
+    model_name: "gemini-2.5-flash"
+    especial_suffix: "familiarity_english_ft_v01_glas_mrc_mean_Gemini2_5"
     # ft:
-    project_name: "psycholinguistics"
-    bucket_name: "psycholinguistics-upm"
+    #project_name: "psycholinguistics"
+    #bucket_name: "psycholinguistics-upm"
+    project_name: "ai-eval-research"
+    bucket_name: "ai-eval-research-bucket"
     company: "Google"
   #################################################################
-
-
-
