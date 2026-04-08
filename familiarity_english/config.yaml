@@ -35,6 +35,13 @@ experiments:
     #model_name: "gemini-3.1-pro-preview"
     model_name: "gemini-3.1-flash-lite-preview"
     company: "Google"
+
+  familiarity_english_std_prmpt_gemini-2.5-flash_vertex_batch:
+    dataset_path: "Glasgow_MRC_joint_norms_inner_join_english.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_v02_standard_prompt.txt"
+    model_name: "gemini-2.5-flash"
+    company: "Google"
   #################################################################
   
 
@@ -244,7 +251,7 @@ finetuning:
     bucket_name: "psycholinguistics-upm"
     company: "Google"
 
-  #################################################################
+  ################################################################# Gemini 2.5 not in batch (one prompt at a time)
   familiarity_english_ft_v01_glas_mrc_mean_Gemini2_5:
     # create finetuning dataset:
     ft_dataset_path: "1_train_random_MRC_Glas.xlsx"
