@@ -30,8 +30,6 @@ import pandas as pd
 from utils import load_config
 
 
-
-
 def create_division_dataset(
     df: pd.DataFrame,
     experiment_path: str,
@@ -61,8 +59,9 @@ def format_template_partial(template: str, entry: dict) -> str:
     """
     def replace(match):
         key = match.group(1)
-        if key in entry:
-            return str(entry[key])
+        key_lower = str(key).lower()
+        if key_lower in entry:
+            return str(entry[key_lower])
         else:
             return match.group(0)  # lets {key} without replacement
 
@@ -90,7 +89,7 @@ def create_jsonl(
         prompt_answer_template = ""
 
     data = df.to_dict(orient="records")
-    current_time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    #current_time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     with open(
         #f"{experiment_path}/finetuning/{dataset_name.split('.')[0]}_{current_time_str}.jsonl",
         f"{experiment_path}/finetuning/{dataset_name.split('.')[0]}.jsonl",

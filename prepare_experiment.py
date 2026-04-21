@@ -180,12 +180,12 @@ def create_batches(
                 file.write_all(tasks)
     return list_of_batch_names
 
-def extract_between_braces(text):
-    start = text.find('{{')
-    end = text.find('}}', start + 2)
+def extract_between_braces(text) -> str :
+    start = text.find('"{')
+    end = text.find('}"', start + 2)
     
     if start != -1 and end != -1:
-        return text[start + 2:end]
+        return text[start + 1 : end + 1]
     return None
 
 if __name__ == "__main__":
@@ -222,7 +222,7 @@ if __name__ == "__main__":
         experiment_path=EXPERIMENT_PATH,
         prompt=prompt,
         #prompt_key=f"{{{config_args['dataset_column']}}}",
-        prompt_key = extract_between_braces(prompt)
+        prompt_key = extract_between_braces(prompt),
         model_version=config_args["model_name"],
         company=config_args["company"],
         ft_dir=config_args.get("ft_dir", None),
@@ -232,5 +232,5 @@ if __name__ == "__main__":
         tasks=tasks,
         experiment_path=EXPERIMENT_PATH,
         run_prefix=EXPERIMENT_NAME,
-        chunk_size = 50
+        #chunk_size = 50000
     )

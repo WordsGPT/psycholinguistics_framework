@@ -2,6 +2,7 @@ experiments:
   
   iconicity_english_base_prompt_gpt-4o:
     dataset_path: "iconicity_ratings_english.xlsx"
+    #dataset_path: "iconicity_ratings_english_sample.xlsx"
     dataset_column: "word"
     prompt_path: "english_base_prompt.txt"
     model_name: "gpt-4o-mini-2024-07-18"
@@ -9,16 +10,16 @@ experiments:
 
 finetuning:
 
-  ft_iconicity_english_base_prompt_gpt-4o_glas_mrc_mean_gpt-4o:
+  ft_iconicity_english_base_prompt_gpt-4o:
     # create finetuning dataset:
-    ft_dataset_path: "train_iconicity_ratings_english.xlsx"
-    train_split_percentage: 1
+    ft_dataset_path: "iconicity_ratings_english.xlsx"
+    train_split_percentage: 0.5
     random_state: 42
-    answer_column: "iconicity_english_glas_mrc_mean"
+    answer_column: "rating"
     prompt_path: "english_base_prompt.txt"
     # prompt_assistant_path: ""
     # execute finetuning:
-    dataset_finetune_name: "ft_iconicity_english_base_prompt_gpt-4o_glas_mrc_mean_gpt-4o.jsonl"
+    dataset_finetune_name: "ft_iconicity_english_base_prompt_gpt-4o.jsonl"
     model_name: "gpt-4o-mini-2024-07-18"
-    especial_suffix: "iconicity_english_gpt-4o_glas_mrc_mean_gpt-4o"
+    especial_suffix: "iconicity_english_base_prompt_gpt-4o"
     company: "OpenAI"

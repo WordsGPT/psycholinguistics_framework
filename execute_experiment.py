@@ -61,7 +61,7 @@ def execute_tasks_openai(list_of_batch_names: list, experiment_path: str) -> lis
     list_of_job_ids = []
     for file_name in list_of_batch_names:
         batch_file = client.files.create(
-            file=open(f"{experiment_path}/batches/{file_name}", "rb"), purpose="batch"
+            file=open(f"{experiment_path}/batchesA/{file_name}", "rb"), purpose="batch"
         )
         batch_job = client.batches.create(
             input_file_id=batch_file.id,
@@ -489,7 +489,7 @@ if __name__ == "__main__":
 
         # wait for batch jobs to finish
         while not retrieve_batch_job_openai(batch_job_ids=list_of_job_ids):
-            wait_time = 300
+            wait_time = 150
             print(f"Waiting for {wait_time} seconds")
             time.sleep(wait_time)
             pass
@@ -509,7 +509,7 @@ if __name__ == "__main__":
                 finished, jobs = retrieve_batch_job_google_finetuned(batch_job_names=list_of_job_ids)
                 if finished:
                     break
-                wait_time = 300
+                wait_time = 150
                 print(f"Waiting for {wait_time} seconds")
                 time.sleep(wait_time)
                 
@@ -525,7 +525,7 @@ if __name__ == "__main__":
                 client, list_of_batch_names=list_of_batch_names, experiment_path=EXPERIMENT_PATH )
             # wait for batch jobs to finish
             while not retrieve_batch_job_google(batch_job_names=list_of_job_ids):
-                wait_time = 300
+                wait_time = 150
                 print(f"Waiting for {wait_time} seconds")
                 time.sleep(wait_time)
                 pass
