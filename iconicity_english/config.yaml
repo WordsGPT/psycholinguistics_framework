@@ -8,6 +8,14 @@ experiments:
     model_name: "gpt-4o-mini-2024-07-18"
     company: "OpenAI"
 
+  iconicity_english_base_prompt_gpt-4o_finetuned:
+    dataset_path: "iconicity_ratings_english.xlsx"
+    dataset_column: "word"
+    prompt_path: "english_base_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-english-base-prompt-gpt-4o:DXlbjdzi"
+    company: "OpenAI"
+
+
 finetuning:
 
   ft_iconicity_english_base_prompt_gpt-4o:

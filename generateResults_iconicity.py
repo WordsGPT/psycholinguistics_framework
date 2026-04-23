@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
 
     results_file = f"{EXPERIMENT_PATH}/results/results.jsonl"
-    batches_file = f"{EXPERIMENT_PATH}/batchesA/batches.jsonl"
+    batches_file = f"{EXPERIMENT_PATH}/batches/batches.jsonl"
 
 
     results_content_file = read_jsonl(results_file)
