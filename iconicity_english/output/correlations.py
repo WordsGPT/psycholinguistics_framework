@@ -13,9 +13,9 @@ print(f"Using method: {method}")
 df = pd.read_excel('iconicity_ratings_english_joined.xlsx')
 
 # Select iconicity columns
-iconicity_cols = ['rating', 'weighted_sum_new']
+iconicity_cols = ['rating', 'iconicity_english_base_prompt_gpt-4o', 'iconicity_english_base_prompt_gpt-4o_finetuned']
 df_iconicity = df[iconicity_cols].apply(pd.to_numeric, errors='coerce')
-df_iconicity.columns = ['human', 'openAI_4o']
+df_iconicity.columns = ['human',  'iconicity_english_base_prompt_gpt-4o', 'iconicity_english_base_prompt_gpt-4o_finetuned']
 
 # Correlations
 corr = df_iconicity.corr(method=method)
