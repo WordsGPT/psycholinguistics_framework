@@ -180,6 +180,7 @@ def google_processing(results_content_file, batches_content_file):
         try:
             if mode in ("weighted_sum", "number"):
                 is_token_content_single_token_number = str(output_text).isdigit() and int(output_text) < 1000 # only positive integers and tokenizers until 999 with one token
+
                 candidates = result_item.get('candidates', [])
                 if candidates:
                     cand0 = candidates[0]
