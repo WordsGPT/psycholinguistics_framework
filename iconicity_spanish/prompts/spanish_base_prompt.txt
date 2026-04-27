@@ -1,0 +1,1 @@
+Para cada palabra que vea, califique en una escala del 1 al 7 cuán icónica cree que es, tomando 1 como muy arbitraria (es decir, el sonido de la palabra no tiene nada que ver con su significado) y 7 como muy icónica (es decir, el sonido de la palabra está muy relacionado con su significado). Por favor, limita tu respuesta a números. La palabra es "{WORD}".

@@ -1,0 +1,24 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import ListedColormap
+import matplotlib.colors as mcolors
+
+method = 'pearson'  # method correlation
+
+print(f"Using method: {method}")
+
+# Read data
+df = pd.read_excel('iconicity_ratings_spanish_joined.xlsx')
+
+# Select iconicity columns
+iconicity_cols = ['ico-m', 'iconicity_spanish_base_prompt_gpt-4o', 'iconicity_spanish_base_prompt_gpt-4o_finetuned']
+df_iconicity = df[iconicity_cols].apply(pd.to_numeric, errors='coerce')
+df_iconicity.columns = ['human', 'iconicity_spanish_base_prompt_gpt-4o', 'iconicity_spanish_base_prompt_gpt-4o_finetuned']
+
+# Correlations
+corr = df_iconicity.corr(method=method)
+
+print(corr)
+corr.to_excel("correlations.xlsx", index=False)

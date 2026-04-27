@@ -1,0 +1,32 @@
+experiments:
+  
+  iconicity_spanish_base_prompt_gpt-4o:
+    dataset_path: "iconicity_ratings_spanish.xlsx"
+    dataset_column: "word"
+    prompt_path: "spanish_base_prompt.txt"
+    model_name: "gpt-4o-mini-2024-07-18"
+    company: "OpenAI"
+
+  iconicity_spanish_base_prompt_gpt-4o_finetuned:
+    dataset_path: "iconicity_ratings_spanish.xlsx"
+    dataset_column: "word"
+    prompt_path: "spanish_base_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-spanish-base-prompt-gpt-4o:DZEwYFcF"
+    company: "OpenAI"
+
+
+finetuning:
+
+  ft_iconicity_spanish_base_prompt_gpt-4o:
+    # create finetuning dataset:
+    ft_dataset_path: "iconicity_ratings_spanish.xlsx"
+    train_split_percentage: 0.5
+    random_state: 42
+    answer_column: "ico-m"
+    prompt_path: "spanish_base_prompt.txt"
+    # prompt_assistant_path: ""
+    # execute finetuning:
+    dataset_finetune_name: "ft_iconicity_spanish_base_prompt_gpt-4o.jsonl"
+    model_name: "gpt-4o-mini-2024-07-18"
+    especial_suffix: "iconicity_spanish_base_prompt_gpt-4o"
+    company: "OpenAI"
