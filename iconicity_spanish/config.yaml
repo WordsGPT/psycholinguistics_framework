@@ -14,6 +14,12 @@ experiments:
     model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-spanish-base-prompt-gpt-4o:DZEwYFcF"
     company: "OpenAI"
 
+  iconicity_spanish_big_list_gpt-4o_finetuned:
+    dataset_path: "List-Spanish-words.xlsx"
+    dataset_column: "Word"
+    prompt_path: "spanish_base_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-spanish-base-prompt-gpt-4o:DZEwYFcF"
+    company: "OpenAI"
 
 finetuning:
 

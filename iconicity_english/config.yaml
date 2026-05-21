@@ -15,6 +15,12 @@ experiments:
     model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-english-base-prompt-gpt-4o:DXlbjdzi"
     company: "OpenAI"
 
+  iconicity_english_big_list_gpt-4o_finetuned:
+    dataset_path: "List_English-Words.xlsx"
+    dataset_column: "Word"
+    prompt_path: "english_base_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-english-base-prompt-gpt-4o:DXlbjdzi"
+    company: "OpenAI"
 
 finetuning:
 
