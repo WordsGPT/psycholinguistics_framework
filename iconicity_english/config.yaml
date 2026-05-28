@@ -22,6 +22,20 @@ experiments:
     model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-english-base-prompt-gpt-4o:DXlbjdzi"
     company: "OpenAI"
 
+  iconicity_english_train_split_50_gpt-4o_finetuned:
+    dataset_path: "train_split_50.0_randomstate_42.xlsx"
+    dataset_column: "word"
+    prompt_path: "english_base_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-english-base-prompt-gpt-4o:DXlbjdzi"
+    company: "OpenAI"
+
+  iconicity_english_test_split_50_gpt-4o_finetuned:
+    dataset_path: "test_split_50.0_randomstate_42.xlsx"
+    dataset_column: "word"
+    prompt_path: "english_base_prompt.txt"
+    model_name: "ft:gpt-4o-mini-2024-07-18:ging-upm:iconicity-english-base-prompt-gpt-4o:DXlbjdzi"
+    company: "OpenAI"
+
 finetuning:
 
   ft_iconicity_english_base_prompt_gpt-4o:
