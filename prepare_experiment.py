@@ -35,7 +35,10 @@ from utils import load_config, openai_login, read_txt
 def load_word_list(file_path: str, column_name: str) -> list:
     print(f"Loading word list from {file_path} column {column_name}...")
     if file_path.endswith(".csv"):
-        df = pd.read_csv(file_path, encoding='iso-8859-1')
+        try:
+            df = pd.read_csv(file_path, encoding='utf-8', low_memory=False)
+        except UnicodeDecodeError:
+            df = pd.read_csv(file_path, encoding='iso-8859-1', low_memory=False)
     elif file_path.endswith(".xlsx"):
         df = pd.read_excel(file_path)
     else:
