@@ -52,7 +52,7 @@ from transformers import AutoProcessor
 def read_list_of_batches(folder_name: str, run_prefix: str) -> list:
     file_names = [
         file
-        for file in os.listdir(f"./{folder_name}/batchesA")
+        for file in os.listdir(f"./{folder_name}/batches")
         # Require "_batch_" right after the name, so "<name>_no_logs_batch_..."
         # is not picked up when running "<name>"
         if file.startswith(f"{run_prefix}_batch_")
@@ -69,7 +69,7 @@ def execute_tasks_openai(list_of_batch_names: list, experiment_path: str) -> lis
     list_of_job_ids = []
     for file_name in list_of_batch_names:
         batch_file = client.files.create(
-            file=open(f"{experiment_path}/batchesA/{file_name}", "rb"), purpose="batch"
+            file=open(f"{experiment_path}/batches/{file_name}", "rb"), purpose="batch"
         )
         batch_job = client.batches.create(
             input_file_id=batch_file.id,
@@ -196,7 +196,7 @@ def execute_tasks_google(client, list_of_batch_names: list, experiment_path: str
         list_of_job_names = []
         for file_name in list_of_batch_names:
             uploaded_file = client.files.upload(
-                file=open(f"{experiment_path}/batchesA/{file_name}", "rb"),
+                file=open(f"{experiment_path}/batches/{file_name}", "rb"),
                 config=types.UploadFileConfig(display_name=file_name, mime_type='jsonl')
             )
             print(f"Uploaded file: {uploaded_file.name}")

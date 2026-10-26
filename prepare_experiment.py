@@ -140,7 +140,7 @@ def get_tasks_gemini(
 def create_batches(
     tasks: list, experiment_path: str, run_prefix: str, chunk_size: int = 50000
 ):
-    os.makedirs(f"{experiment_path}/batchesA", exist_ok=True)
+    os.makedirs(f"{experiment_path}/batches", exist_ok=True)
     date_string = datetime.now().strftime("%Y-%m-%d-%H-%M")
     list_of_tasks = [
         tasks[i : i + chunk_size] for i in range(0, len(tasks), chunk_size)
@@ -149,7 +149,7 @@ def create_batches(
     for index, tasks in enumerate(list_of_tasks):
         batch_name = f"batch_{index}_{date_string}.jsonl"
         list_of_batch_names.append(batch_name)
-        with jsonlines.open(f"{experiment_path}/batchesA/{run_prefix}_{batch_name}", "w") as file:
+        with jsonlines.open(f"{experiment_path}/batches/{run_prefix}_{batch_name}", "w") as file:
                 file.write_all(tasks)
     return list_of_batch_names
 
