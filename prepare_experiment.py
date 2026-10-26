@@ -55,16 +55,11 @@ def get_tasks(word_list: list,
     logprobs: bool = True,
     top_logprobs: int = 5,
     prompt_key: str = "{WORD}",
-    company: str = "OpenAI",
-    ft_dir: str = None) -> list:
-    if company == "OpenAI":
+    company: str = "OpenAI") -> list:
+    if company == "OpenAI" or company == "Local":
         return get_tasks_openai(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs, prompt_key)
     elif company == "Google":
         return get_tasks_gemini(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
-    elif company == "HuggingFace":
-        return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key, ft_dir)
-    elif company == "Local":
-        return get_tasks_huggingface(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key, ft_dir)
     else:
         raise ValueError(f"Unknown company: {company}")
 
@@ -90,6 +85,8 @@ def get_tasks_openai(
                 "temperature": temperature,
                 "logprobs": logprobs,
                 "top_logprobs": top_logprobs,
+                # "max_completion_tokens": 500,
+                # "reasoning_effort": "minimal",
                 "response_format": {"type": "text"},
                 "messages": [
                 {"role": "user", "content": prompt.replace(prompt_key, str(word))}
@@ -140,33 +137,6 @@ def get_tasks_gemini(
     return tasks
 
 
-def get_tasks_huggingface(
-    word_list: list,
-    experiment_path: str,
-    prompt: str,
-    model_version: str,
-    temperature: float = 0.0,
-    logprobs: bool = True,
-    top_logprobs: int = 5,
-    prompt_key: str = "{WORD}",
-    ft_dir: str = None,
-) -> list:
-    tasks = []
-    for counter, word in enumerate(word_list, start=1):
-        task = {
-            "id": f"{experiment_path}_task_{counter}",
-            "prompt": prompt.replace(prompt_key, str(word)),
-            "temperature": temperature,
-            "response_logprobs": logprobs,
-            "logprobs": top_logprobs,
-            "model": model_version,
-        }
-        if ft_dir:
-            task["ft_dir"] = ft_dir
-        tasks.append(task)
-    return tasks
-    
-
 def create_batches(
     tasks: list, experiment_path: str, run_prefix: str, chunk_size: int = 50000
 ):
@@ -183,13 +153,6 @@ def create_batches(
                 file.write_all(tasks)
     return list_of_batch_names
 
-def extract_between_braces(text) -> str :
-    start = text.find('"{')
-    end = text.find('}"', start + 2)
-    
-    if start != -1 and end != -1:
-        return text[start + 1 : end + 1]
-    return None
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -203,6 +166,9 @@ if __name__ == "__main__":
             "Provide as arguments the experiment path and optionally the experiment name, i.e.: python3 prepare_experiment.py <EXPERIMENT_PATH> <EXPERIMENT_NAME>."
         )
         exit()
+
+    # login
+    client = openai_login()
 
     # prepare data
     config_args = load_config(
@@ -220,20 +186,18 @@ if __name__ == "__main__":
     prompt = read_txt(
         file_path=f"{EXPERIMENT_PATH}/prompts/{config_args['prompt_path']}"
     )
+
     tasks = get_tasks(
         word_list=word_list,
         experiment_path=EXPERIMENT_PATH,
         prompt=prompt,
-        #prompt_key=f"{{{config_args['dataset_column']}}}",
-        prompt_key = extract_between_braces(prompt),
+        prompt_key=f"{{{config_args['dataset_column']}}}",
         model_version=config_args["model_name"],
-        company=config_args["company"],
-        ft_dir=config_args.get("ft_dir", None),
         top_logprobs=config_args.get("top_logprobs", 5),
+        company=config_args["company"],
     )
     list_of_batch_names = create_batches(
         tasks=tasks,
         experiment_path=EXPERIMENT_PATH,
         run_prefix=EXPERIMENT_NAME,
-        #chunk_size = 50000
     )

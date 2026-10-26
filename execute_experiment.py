@@ -24,6 +24,8 @@ This will execute the tasks in the batch files and save the results in the `resu
 
 
 import os
+import re
+import gc
 import sys
 import time
 from datetime import datetime
@@ -43,14 +45,20 @@ from peft import PeftModel
 import vertexai
 from google.cloud import aiplatform, storage
 from vertexai.tuning import sft
+from transformers import AutoProcessor
+
 
 
 def read_list_of_batches(folder_name: str, run_prefix: str) -> list:
     file_names = [
         file
         for file in os.listdir(f"./{folder_name}/batchesA")
-        if file.startswith(run_prefix)
+        # Require "_batch_" right after the name, so "<name>_no_logs_batch_..."
+        # is not picked up when running "<name>"
+        if file.startswith(f"{run_prefix}_batch_")
     ]
+    # Numeric order (os.listdir order is arbitrary and "batch_10" < "batch_2" as text)
+    file_names.sort(key=lambda name: int(re.search(r"_batch_(\d+)_", name).group(1)))
     print(f"Batches to run: {file_names}")
     return file_names
 
@@ -204,38 +212,38 @@ def execute_tasks_google(client, list_of_batch_names: list, experiment_path: str
         return list_of_job_names
 
 
-def format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs=5):
-    gen_text = output[0]["generated_text"]
-    scores = output[0]["scores"]
-    token_entry_list=[]
-    for step_logits_list in scores:
-        step_logits = torch.tensor(step_logits_list)
-        step_probs = torch.softmax(step_logits, dim=0)
-        step_logprobs = torch.log(step_probs)
-        top_probs, top_indices = torch.topk(step_probs, logprobs)
-        top_logprobs = torch.log(top_probs)
-        
-        top_tokens = tokenizer.convert_ids_to_tokens(top_indices.tolist())
-        
-        cur_token = top_tokens[0]
-        cur_logprob = top_logprobs.tolist()[0]
-        
-        top_logprobs_list = []
-        for t, lp in zip(top_tokens, top_logprobs.tolist()):
-            top_logprobs_list.append({
-                "token": t,
-                "logprob": lp,
-                "bytes": list(t.encode("utf-8"))
-            })
-        token_entry = {
-            "token": cur_token,
-            "logprob": cur_logprob,
-            "bytes": list(cur_token.encode("utf-8")),
-            "top_logprobs": top_logprobs_list
-        }
-        token_entry_list.append(token_entry)
+def logprob_entries_from_scores(step_scores, tokenizer, top_k):
+    """
+    Build the OpenAI-style logprobs list for one generated sequence.
+    step_scores: tensor [n_steps, vocab] with the scores of each generated step
+    (kept on the GPU, so softmax and top-k are fast).
+    """
+    if step_scores is None or step_scores.shape[0] == 0:
+        return []
+    step_logprobs = torch.log_softmax(step_scores.float(), dim=-1)
+    top_logprobs, top_indices = torch.topk(step_logprobs, top_k, dim=-1)
+    top_logprobs = top_logprobs.cpu().tolist()
+    top_indices = top_indices.cpu().tolist()
+
+    token_entry_list = []
+    for step_lps, step_ids in zip(top_logprobs, top_indices):
+        top_tokens = tokenizer.convert_ids_to_tokens(step_ids)
+        top_logprobs_list = [
+            {"token": t, "logprob": lp, "bytes": list(t.encode("utf-8"))}
+            for t, lp in zip(top_tokens, step_lps)
+        ]
+        token_entry_list.append({
+            "token": top_tokens[0],
+            "logprob": step_lps[0],
+            "bytes": list(top_tokens[0].encode("utf-8")),
+            "top_logprobs": top_logprobs_list,
+        })
+    return token_entry_list
+
+
+def format_results_huggingface(gen_text, token_entry_list, custom_id):
     json_line = {
-        "id": f"{experiment_path}_task_{counter}",
+        "id": custom_id,
         "response": {
             "status_code": -1,
             "body": {
@@ -261,10 +269,78 @@ def format_results_huggingface(output, tokenizer, counter, experiment_path, logp
 
 
 
+def ensure_chat_template(tokenizer, model_name: str) -> bool:
+    """
+    Try to give the tokenizer a chat template.
+    Tokenizers saved next to a LoRA adapter may not carry one, so we borrow it
+    from the base model's tokenizer, then from its processor.
+    Returns True if a chat template is available, False otherwise.
+    Base (pretrained, non "-it") models such as google/gemma-4-31B have no chat
+    template at all; in that case prompts are sent as plain text.
+    """
+    if tokenizer.chat_template:
+        return True
+
+    try:
+        base_tokenizer = AutoTokenizer.from_pretrained(model_name)
+        if base_tokenizer.chat_template:
+            tokenizer.chat_template = base_tokenizer.chat_template
+            print(f"Chat template copied from base tokenizer {model_name}")
+            return True
+    except Exception as e:
+        print(f"Could not load base tokenizer for chat template: {e}")
+
+    try:
+        processor = AutoProcessor.from_pretrained(model_name)
+        if getattr(processor, "chat_template", None):
+            tokenizer.chat_template = processor.chat_template
+            print(f"Chat template copied from processor {model_name}")
+            return True
+    except Exception as e:
+        print(f"Could not load processor for chat template: {e}")
+
+    print(f"No chat template for {model_name} (base model); sending prompts as plain text.")
+    return False
+
+
+def parse_batch_line(obj: dict) -> dict:
+    """
+    Read one batch line, in either layout:
+    - OpenAI style (prepare_experiment.py): {"custom_id", "body": {"model", "temperature",
+      "logprobs": bool, "top_logprobs": int, "messages": [...]}}
+    - flat style: {"prompt", "model", "temperature", "response_logprobs": bool, "logprobs": int, "ft_dir"}
+    """
+    if "body" in obj:
+        body = obj["body"]
+        return {
+            "custom_id": obj.get("custom_id"),
+            "model": body.get("model"),
+            "ft_dir": obj.get("ft_dir", body.get("ft_dir")),
+            "temperature": body.get("temperature"),
+            "response_logprobs": body.get("logprobs"),
+            "logprobs": body.get("top_logprobs"),
+            "prompt": body["messages"][-1]["content"],
+        }
+    return {
+        "custom_id": obj.get("custom_id"),
+        "model": obj.get("model"),
+        "ft_dir": obj.get("ft_dir"),
+        "temperature": obj.get("temperature"),
+        "response_logprobs": obj.get("response_logprobs"),
+        "logprobs": obj.get("logprobs"),
+        "prompt": obj.get("prompt"),
+    }
 
 
 def execute_tasks_save_model_hf_or_local(list_of_batch_names: list, experiment_path: str, run_prefix: str, batch_size=5) -> list:
     list_of_job_names = []
+
+    # The model is loaded once and reused for every batch file that uses the same
+    # model + LoRA. Loading it again for each file would put a second 60 GB copy
+    # on the GPU and run out of memory.
+    model = None
+    tokenizer = None
+    loaded_key = None
 
     for index, file_name in enumerate(list_of_batch_names):
         jsonl_file_path = f"{experiment_path}/batches/{file_name}"
@@ -272,92 +348,167 @@ def execute_tasks_save_model_hf_or_local(list_of_batch_names: list, experiment_p
         # Read configuration from the first entry of the JSONL file
         with jsonlines.open(jsonl_file_path, "r") as reader:
             for obj in reader:
-                model_name = obj.get("model")
-                ft_dir = obj.get("ft_dir", None)  # optional LoRA directory
-                temperature = obj.get("temperature")
-                response_logprobs = obj.get("response_logprobs")
-                logprobs = obj.get("logprobs")
+                first = parse_batch_line(obj)
+                model_name = first["model"]
+                ft_dir = first["ft_dir"]  # optional LoRA directory
+                temperature = first["temperature"]
+                response_logprobs = first["response_logprobs"]
+                logprobs = first["logprobs"]
                 break
 
-        # Load base model
-        base_model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            device_map="auto",
-            torch_dtype=torch.bfloat16
-        )
+        if (model_name, ft_dir) != loaded_key:
+            # Free the previous model (if any) before loading a different one
+            if model is not None:
+                print("Unloading previous model")
+                model = None
+                base_model = None
+                gc.collect()
+                torch.cuda.empty_cache()
 
-        # Apply LoRA if directory is provided
-        if ft_dir:
-            ft_dir_final = f"{experiment_path}/finetuning/cache_model/{ft_dir}"
-            if not os.path.isdir(ft_dir_final):
-                ft_dir_final = f"{experiment_path}/finetuning_final/{ft_dir}/cache_model/{ft_dir}"
-            if not os.path.isdir(ft_dir_final):
-                raise ValueError(f"LoRA directory {ft_dir_final} does not exist.")
-            print(f"Loading LoRA-finetuned model from {ft_dir_final}")
-            model = PeftModel.from_pretrained(base_model, ft_dir_final)
-            tokenizer = AutoTokenizer.from_pretrained(ft_dir_final)
+            # Load base model (all layers on the single GPU)
+            base_model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                device_map={"": 0},
+                torch_dtype=torch.bfloat16
+            )
+
+            # Apply LoRA if directory is provided
+            if ft_dir:
+                ft_dir_final = f"{experiment_path}/finetuning/cache_model/{ft_dir}"
+                if not os.path.isdir(ft_dir_final):
+                    ft_dir_final = f"{experiment_path}/finetuning_final/{ft_dir}/cache_model/{ft_dir}"
+                if not os.path.isdir(ft_dir_final):
+                    raise ValueError(f"LoRA directory {ft_dir_final} does not exist.")
+                print(f"Loading LoRA-finetuned model from {ft_dir_final}")
+                model = PeftModel.from_pretrained(base_model, ft_dir_final)
+                # Fold the LoRA weights into the base model: same outputs, faster generation
+                model = model.merge_and_unload()
+                model.eval()
+                print("LoRA merged into base model")
+                tokenizer = AutoTokenizer.from_pretrained(ft_dir_final)
+            else:
+                model = base_model
+                print(f"Using base model {model_name} (no LoRA applied)")
+                tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+            loaded_key = (model_name, ft_dir)
         else:
-            model = base_model
-            print(f"Using base model {model_name} (no LoRA applied)")
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            print(f"Reusing already loaded model for {file_name}")
 
-        # Create text-generation pipeline
-        pipeline = transformers.pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=tokenizer,
-            device_map="auto",
+        # Settings for batched generation with a decoder-only model
+        tokenizer.padding_side = "left"
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+
+        # The model's own stop tokens (for chat models this includes end-of-turn)
+        model_eos = model.generation_config.eos_token_id
+        if model_eos is None:
+            model_eos = []
+        elif not isinstance(model_eos, list):
+            model_eos = [model_eos]
+        stop_ids = [t for t in dict.fromkeys(model_eos + [tokenizer.eos_token_id]) if t is not None]
+
+        if ft_dir:
+            # The LoRA was trained on "User: <prompt>\nAssistant: <answer>\n" without an
+            # EOS token, so use the same format and stop at the end of the answer line.
+            prompt_format = "finetune"
+            newline_id = tokenizer.encode("\n", add_special_tokens=False)[-1]
+            stop_ids.append(newline_id)
+            print("Prompt format: 'User: <prompt>\\nAssistant:' (stops at newline)")
+        else:
+            prompt_format = "chat" if ensure_chat_template(tokenizer, model_name) else "plain"
+            print(f"Prompt format: {prompt_format}")
+
+        def build_input(prompt):
+            if prompt_format == "finetune":
+                return f"User: {prompt}\nAssistant:"
+            if prompt_format == "chat":
+                return tokenizer.apply_chat_template(
+                    [{"role": "user", "content": prompt}],
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            return prompt
+
+        # Chat templates already contain the BOS token; the other formats need it added
+        add_special_tokens = prompt_format != "chat"
+        stop_set = set(stop_ids)
+        top_k = logprobs or 5
+        do_sample = bool(temperature) and temperature > 0
+        gen_kwargs = dict(
+            max_new_tokens=200,
+            do_sample=do_sample,
+            eos_token_id=stop_ids,
+            pad_token_id=tokenizer.pad_token_id,
+            return_dict_in_generate=True,
+            output_scores=bool(response_logprobs),
         )
+        if do_sample:
+            gen_kwargs["temperature"] = temperature
 
-        # Prepare output file
+        @torch.inference_mode()
+        def run_batch(batch_inputs, batch_ids, f_out):
+            enc = tokenizer(
+                batch_inputs,
+                return_tensors="pt",
+                padding=True,
+                add_special_tokens=add_special_tokens,
+            ).to(model.device)
+            out = model.generate(**enc, **gen_kwargs)
+
+            prompt_len = enc["input_ids"].shape[1]
+            new_tokens = out.sequences[:, prompt_len:]
+            # out.scores: tuple with one [batch, vocab] tensor per generated step
+            scores = out.scores if gen_kwargs["output_scores"] else None
+
+            for i in range(new_tokens.shape[0]):
+                custom_id = batch_ids[i]
+                ids = new_tokens[i].tolist()
+                # Length of this answer: up to and including its first stop token
+                n = len(ids)
+                for j, tok in enumerate(ids):
+                    if tok in stop_set:
+                        n = j + 1
+                        break
+                gen_text = tokenizer.decode(ids[:n], skip_special_tokens=True).strip()
+                entries = (
+                    logprob_entries_from_scores(
+                        torch.stack([step[i] for step in scores[:n]]), tokenizer, top_k
+                    )
+                    if scores is not None and n > 0 else []
+                )
+                json_line = format_results_huggingface(gen_text, entries, custom_id)
+                f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
+                f_out.flush()
+
+        # Prepare output file (named after the batch number, not the execution order)
+        batch_num = re.search(r"_batch_(\d+)_", file_name).group(1)
         date_string = datetime.now().strftime("%Y-%m-%d-%H-%M")
         os.makedirs(f"{experiment_path}/results", exist_ok=True)
-        output_file = f"{experiment_path}/results/{run_prefix}_results_{index+1}_{date_string}.jsonl"
+        output_file = f"{experiment_path}/results/{run_prefix}_results_batch_{batch_num}_{date_string}.jsonl"
 
         with open(output_file, "w", encoding="utf-8") as f_out:
             with jsonlines.open(jsonl_file_path, "r") as reader:
                 batch_messages = []
-                counter = 0
+                batch_ids = []
 
                 # Process prompts in batches
                 for obj in tqdm(reader, desc=f"Processing {jsonl_file_path}"):
-                    prompt = obj.get("prompt")
-                    batch_messages.append([{"role": "user", "content": prompt}])
-
+                    line = parse_batch_line(obj)
+                    if not line["custom_id"]:
+                        raise ValueError(f"{file_name}: batch line without custom_id, ids would not be unique across batches")
+                    batch_messages.append(build_input(line["prompt"]))
+                    batch_ids.append(line["custom_id"])
                     if len(batch_messages) == batch_size:
-                        outputs = pipeline(
-                            batch_messages,
-                            max_new_tokens=500,
-                            temperature=temperature,
-                            do_sample=True if temperature > 0 else False,
-                            return_full_text=False,
-                            return_dict_in_generate=True,
-                            output_scores=response_logprobs
-                        )
-                        for output in outputs:
-                            counter += 1
-                            json_line = format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs)
-                            f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
-                            f_out.flush()
+                        run_batch(batch_messages, batch_ids, f_out)
                         batch_messages = []
+                        batch_ids = []
 
                 # Process any remaining messages
                 if len(batch_messages) > 0:
-                    outputs = pipeline(
-                        batch_messages,
-                        max_new_tokens=500,
-                        temperature=temperature,
-                        do_sample=True if temperature > 0 else False,
-                        return_full_text=False,
-                        return_dict_in_generate=True,
-                        output_scores=response_logprobs
-                    )
-                    for output in outputs:
-                        counter += 1
-                        json_line = format_results_huggingface(output, tokenizer, counter, experiment_path, logprobs)
-                        f_out.write(json.dumps(json_line, ensure_ascii=False) + "\n")
-                        f_out.flush()
+                    run_batch(batch_messages, batch_ids, f_out)
                     batch_messages = []
+                    batch_ids = []
 
 
 def retrieve_batch_job_google(batch_job_names):
