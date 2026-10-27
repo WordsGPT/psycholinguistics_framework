@@ -245,7 +245,13 @@ def huggingface_processing(results_content_file, batches_content_file):
                 is_token_content_single_token_number = str(feature_value).isdigit() and int(feature_value) < 1000
                 # Only valid for responses of single util tokens
                 if is_token_content_single_token_number:
-                    top_logprobs_list = combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"][0]['top_logprobs']
+                    # Gemma emits a leading "▁" token before the digits: use the first token that is a digit
+                    # (if the first token is already a digit this is the same as content[0]).
+                    # The weighted sum is over the FIRST digit only (e.g. "61" -> tens digit, scale 1-7);
+                    # the second digit is not used.
+                    tokens_list = combined_entry["response"]["body"]["choices"][0]["logprobs"]["content"]
+                    digit_token = next((t for t in tokens_list if t['token'].strip('▁ ').isdigit()), tokens_list[0])
+                    top_logprobs_list = digit_token['top_logprobs']
                     weighted_sum = 0
                     total_prob = 0
                     # Iterate over the list of top_logprobs that are numbers
@@ -258,7 +264,7 @@ def huggingface_processing(results_content_file, batches_content_file):
                         except ValueError:
                             pass
                     weighted_sum /= total_prob if total_prob > 0 else 1
-                    logprob = combined_entry['response']['body']['choices'][0]['logprobs']['content'][0]['logprob']
+                    logprob = digit_token['logprob']
                 
 
             entry_result['word'] = word_input
@@ -278,6 +284,10 @@ def huggingface_processing(results_content_file, batches_content_file):
 ## Main ##
 
 if __name__ == "__main__":
+    # Optional flag --csv: write a CSV instead of an Excel file (can go anywhere in the arguments)
+    output_csv = "--csv" in sys.argv
+    sys.argv = [arg for arg in sys.argv if arg != "--csv"]
+
     if len(sys.argv) > 1:
         EXPERIMENT_PATH = sys.argv[1]
     if len(sys.argv) > 2:
@@ -288,7 +298,7 @@ if __name__ == "__main__":
             country = ""
     else:
         print(
-            "Provide as arguments the experiment path, the mode [json, number, weighted_sum] and optionally the language."
+            "Provide as arguments the experiment path, the mode [json, number, weighted_sum], optionally the language and optionally --csv to write a CSV instead of an Excel file."
         )
         exit()
 
@@ -301,7 +311,7 @@ if __name__ == "__main__":
     # END TO CONFIGURE DEPENDING ON YOUR CASE STUDY #
     logprobs = False
     timestamp = int(time.time())
-    output_file = f'{EXPERIMENT_PATH}/output_{timestamp}.xlsx'
+    output_file = f'{EXPERIMENT_PATH}/output_{timestamp}.{"csv" if output_csv else "xlsx"}'
 
 
     if country == 'german':
@@ -332,7 +342,10 @@ if __name__ == "__main__":
     all_fieldnames = list(combined_data[0].keys())
 
     df = pd.DataFrame(combined_data)
-    df.to_excel(output_file, index=False, columns=all_fieldnames)
+    if output_csv:
+        df.to_csv(output_file, index=False, encoding="utf-8-sig", columns=all_fieldnames)
+    else:
+        df.to_excel(output_file, index=False, columns=all_fieldnames)
 
     print(f"Combined data written to {output_file}")
 

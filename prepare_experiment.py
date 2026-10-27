@@ -55,13 +55,47 @@ def get_tasks(word_list: list,
     logprobs: bool = True,
     top_logprobs: int = 5,
     prompt_key: str = "{WORD}",
-    company: str = "OpenAI") -> list:
-    if company == "OpenAI" or company == "Local":
+    company: str = "OpenAI",
+    ft_dir: str = None) -> list:
+    if company == "Local":
+        return get_tasks_local(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs, prompt_key, ft_dir)
+    elif company == "OpenAI":
         return get_tasks_openai(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs, prompt_key)
     elif company == "Google":
         return get_tasks_gemini(word_list, experiment_path, prompt, model_version, temperature, logprobs, top_logprobs,prompt_key)
     else:
         raise ValueError(f"Unknown company: {company}")
+
+def get_tasks_local(
+    word_list: list,
+    experiment_path: str,
+    prompt: str,
+    model_version: str,
+    temperature: int = 0,
+    logprobs: bool = True,
+    top_logprobs: int = 5,
+    prompt_key: str = "{WORD}",
+    ft_dir: str = None,
+) -> list:
+    """
+    Flat task format read by execute_experiment.py for company "Local" (HuggingFace models).
+    The id is global across batches (counter over the whole word list) and is copied as is
+    into the results, so results can be joined back without relying on file order.
+    """
+    tasks = []
+    for counter, word in enumerate(word_list, start=1):
+        task = {
+            "id": f"{experiment_path.rstrip('/')}/_task_{counter}",
+            "prompt": prompt.replace(prompt_key, str(word)),
+            "temperature": temperature,
+            "response_logprobs": logprobs,
+            "logprobs": top_logprobs,
+            "model": model_version,
+        }
+        if ft_dir:
+            task["ft_dir"] = ft_dir
+        tasks.append(task)
+    return tasks
 
 def get_tasks_openai(
     word_list: list,
@@ -195,6 +229,7 @@ if __name__ == "__main__":
         model_version=config_args["model_name"],
         top_logprobs=config_args.get("top_logprobs", 5),
         company=config_args["company"],
+        ft_dir=config_args.get("ft_dir"),
     )
     list_of_batch_names = create_batches(
         tasks=tasks,

@@ -5,11 +5,12 @@ import os
 
 # Usage:
 # python combine_excels.py file1.xlsx file2.xlsx key_df1,key_df2 [suffix]
+# If file1 is a .csv, both files are read as CSV and the result is written as CSV.
 
 if len(sys.argv) not in (4, 5):
     print(
         "Usage: python combine_excels.py "
-        "<file1.xlsx> <file2.xlsx> merge_key1,merge_key2 [suffix]"
+        "<file1.xlsx|csv> <file2.xlsx|csv> merge_key1,merge_key2 [suffix]"
     )
     sys.exit(1)
 
@@ -24,14 +25,21 @@ if len(merge_keys) != 2:
 
 key_df1, key_df2 = merge_keys
 
-# Load all sheets from the first Excel file
-all_sheets = pd.read_excel(file1, sheet_name=None)
-sheet_names = list(all_sheets.keys())
-first_sheet_name = sheet_names[0]
-df1 = all_sheets[first_sheet_name]
+is_csv = file1.lower().endswith(".csv")
 
-# Load the second Excel file
-df2 = pd.read_excel(file2)
+if is_csv:
+    # Load both CSV files
+    df1 = pd.read_csv(file1)
+    df2 = pd.read_csv(file2)
+else:
+    # Load all sheets from the first Excel file
+    all_sheets = pd.read_excel(file1, sheet_name=None)
+    sheet_names = list(all_sheets.keys())
+    first_sheet_name = sheet_names[0]
+    df1 = all_sheets[first_sheet_name]
+
+    # Load the second Excel file
+    df2 = pd.read_excel(file2)
 
 # Validate merge keys
 if key_df1 not in df1.columns:
@@ -115,15 +123,18 @@ if os.path.exists(backup_file):
         "Rename or move the existing backup before running again."
     )
 
-# Back up original Excel file
+# Back up original file
 os.rename(file1, backup_file)
 
-# Save merged result, preserving all sheets
-all_sheets[first_sheet_name] = df_merged
+if is_csv:
+    df_merged.to_csv(file1, index=False, encoding="utf-8-sig")
+else:
+    # Save merged result, preserving all sheets
+    all_sheets[first_sheet_name] = df_merged
 
-with pd.ExcelWriter(file1, engine="openpyxl") as writer:
-    for sheet, data in all_sheets.items():
-        data.to_excel(writer, sheet_name=sheet, index=False)
+    with pd.ExcelWriter(file1, engine="openpyxl") as writer:
+        for sheet, data in all_sheets.items():
+            data.to_excel(writer, sheet_name=sheet, index=False)
 
 # Logs
 print(f"\nOriginal file backed up as: {backup_file}")

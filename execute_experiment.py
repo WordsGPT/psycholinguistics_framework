@@ -308,7 +308,7 @@ def parse_batch_line(obj: dict) -> dict:
     Read one batch line, in either layout:
     - OpenAI style (prepare_experiment.py): {"custom_id", "body": {"model", "temperature",
       "logprobs": bool, "top_logprobs": int, "messages": [...]}}
-    - flat style: {"prompt", "model", "temperature", "response_logprobs": bool, "logprobs": int, "ft_dir"}
+    - flat style: {"id", "prompt", "model", "temperature", "response_logprobs": bool, "logprobs": int, "ft_dir"}
     """
     if "body" in obj:
         body = obj["body"]
@@ -322,7 +322,7 @@ def parse_batch_line(obj: dict) -> dict:
             "prompt": body["messages"][-1]["content"],
         }
     return {
-        "custom_id": obj.get("custom_id"),
+        "custom_id": obj.get("custom_id") or obj.get("id"),
         "model": obj.get("model"),
         "ft_dir": obj.get("ft_dir"),
         "temperature": obj.get("temperature"),
@@ -496,7 +496,7 @@ def execute_tasks_save_model_hf_or_local(list_of_batch_names: list, experiment_p
                 for obj in tqdm(reader, desc=f"Processing {jsonl_file_path}"):
                     line = parse_batch_line(obj)
                     if not line["custom_id"]:
-                        raise ValueError(f"{file_name}: batch line without custom_id, ids would not be unique across batches")
+                        raise ValueError(f"{file_name}: batch line without custom_id/id, ids would not be unique across batches")
                     batch_messages.append(build_input(line["prompt"]))
                     batch_ids.append(line["custom_id"])
                     if len(batch_messages) == batch_size:
