@@ -1,1 +1,0 @@
-Rate the familiarity with {Word} on a scale from 1 to 7. Return a number
