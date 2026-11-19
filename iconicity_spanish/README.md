@@ -38,13 +38,11 @@ The configuration has separate sections for `experiments` (prediction runs) and 
 
 ### Configuration points requiring confirmation
 
-- **TO CONFIRM:** the API endpoint and request parameters actually used for each batch and fine-tuning job (`temperature`, `top_logprobs`, `max_tokens`, seed where applicable); these are not fully recorded in `config.yaml`.
-- **TO CONFIRM:** exact processing script, mode (`number` / `weighted_sum`), and mapping of a completed API response to the released `BIGFILE` output.
-- **TO CONFIRM:** original training-job metadata (epochs, batch size, LR multiplier, job identifier, date), which cannot be inferred from these YAML fields alone.
+- **Note 1:** Parameters `temperature` (default = 0), `top_logprobs` (default = 5), ... are set at `prepare_experiment.py` .
+- **Note 2:** The released `BIGFILE` output was produced with iconicity_english_big_list_gpt-4o_finetuned experiment using default values.
 - **TO CONFIRM:** specific steps and script invocation used to merge the model results into the `*_joined.xlsx` file.
-- **TO CONFIRM:** any non-default API settings and retry/failed-response policy, including handling of missing predictions.
+- **TO CONFIRM:** The retry/failed-response policy, including handling of missing predictions is performed in ...
 
 **Naming note:** the experiment keys contain `gpt-4o`, but the base model in the YAML is explicitly `gpt-4o-mini-2024-07-18`. Do not treat these as interchangeable model names.
-
 
 **Known list/output difference:** `data/List-Spanish-words.xlsx` has 127,728 entries; `output/iconicity_BIGFILE_ratings_spanish.xlsx` has 127,727. The missing entry is **`fuisca`** (input spreadsheet row 59835). No prediction was invented.

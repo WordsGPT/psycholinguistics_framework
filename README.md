@@ -50,18 +50,18 @@ The `*_BIGFILE_*` spreadsheets contain two columns: `word` and model-estimated `
 
 ## Reproducing the experiment (overview)
 
-1. Use Python 3.11 according to the original repository instructions; install dependencies with `pip install -r requirements.txt`. **TO CONFIRM:** the exact environment and versions used to generate the published data.
+1. Use Python version 3.11 or above (checked up to version 3.14.10, use requirements_no_version in newer Pythons) according to the original repository instructions; install dependencies with `pip install -r requirements.txt`.
 2. Copy `apis_example.env` to a private local `apis.env` and supply your own credentials; **never commit or publish real keys**.
 3. Read `iconicity_english/config.yaml` or `iconicity_spanish/config.yaml` (documented in the respective language README). Each defines base, fine-tuned and large-word-list runs.
 4. Prepare batches with `python3 prepare_experiment.py <experiment_folder> <experiment_name>`. Execute them with `python3 execute_experiment.py <experiment_folder> <experiment_name>`.
 5. For supervised learning, use `python3 create_finetuning_dataset.py <experiment_folder> <fine_tuning_name>` followed by `python3 execute_finetune.py <experiment_folder> <fine_tuning_name>`. The train/test files have a 50/50 split and random state 42.
-6. Batch response records are processed using `generateResults.py` or `generateResults_iconicity.py`. **TO CONFIRM:** the exact script invocation, processing mode and final merge commands used for each released BIGFILE and joined dataset.
+6. Batch response records are processed using `generateResults_iconicity.py`.
 
 Example run names are defined exactly in the language-specific config files; placeholders above are arguments, not literal paths. These instructions outline the original workflow but are **not** yet a fully audited end-to-end recipe. The API may produce different results if the hosted model or endpoint changes.
 
-## Configuration fields (B06)
+## Configuration fields
 
-The two experiment READMEs document every configured experiment key, input dataset, column, prompt, base/fine-tuned model ID and the fine-tuning split/target. Missing details that need confirmation are explicitly marked **TO CONFIRM**.
+The two experiment READMEs document every configured experiment key, input dataset, column, prompt, base/fine-tuned model ID and the fine-tuning split/target.
 
 ## Input provenance
 
@@ -83,4 +83,3 @@ When archiving the datasets in Zenodo, display CC0 on the dataset landing page. 
 
 - The source repository may produce temporary `batches/`, `results/`, `__pycache__/` and other intermediate folders while scripts run. They are not required to interpret the released XLSX datasets.
 - This distributable archive intentionally excludes the local credential-bearing `apis.env`, Python bytecode caches and `.git` metadata; generate credentials locally from `apis_example.env`.
-- The existing `psycholinguistics_framework.zip` file was retained. **TO CONFIRM:** it is a prior snapshot and whether it is needed in a public release.
