@@ -32,8 +32,8 @@ Rows (excluding header): **14,776**. Columns: **6**.
 | Column | Meaning |
 |---|---|
 | `word` | Lexical entry or expression as represented in this table; case and punctuation may be meaningful. |
-| `n_ratings` | Number of ratings recorded in the English source dataset. **CHECK:** exact counting rule versus `n` should be confirmed against the original dataset documentation. |
-| `n` | Count field retained from the English source norms. **CHECK:** verify the exact denominator and the distinction from `n_ratings` with Winter et al. (2024). |
+| `n_ratings` | Number of ratings recorded in the English source dataset. |
+| `n` | Count field retained from the English source norms. |
 | `prop_known` | Proportion of participants indicating that they knew the word; inherited from the English norms (usually between 0 and 1). |
 | `rating` | Mean human iconicity rating on a 1–7 scale (English norms; Winter et al., 2024). |
 | `rating_sd` | Standard deviation of the human iconicity ratings (English normative study). |

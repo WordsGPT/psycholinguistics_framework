@@ -42,4 +42,8 @@ The configuration has separate sections for `experiments` (prediction runs) and 
 
 - **Note 1:** Parameters `temperature` (default = 0), `top_logprobs` (default = 5), ... are set at `prepare_experiment.py` .
 - **Note 2:** The released `BIGFILE` output was produced with iconicity_english_big_list_gpt-4o_finetuned experiment using default values.
+- **Note 3:** The *_joined.xlsx files were created by manually merging the corresponding datasets after the correlations had been computed using the correlations.py script. For further details, please refer to the README.md file in the output/ directory.
+- **Note 4:** Failed or missing predictions arising from batch requests to the AI API are handled manually. When a batch produces a substantial number of missing responses, the corresponding failed requests are identified and regrouped interactively using Python into a new batch job. This job is then resubmitted for inference, typically through the web portal. The procedure is currently ad hoc, as no automated or standardized retry mechanism has been implemented.
+
+
 **Naming note:** the experiment keys contain `gpt-4o`, but the base model in the YAML is explicitly `gpt-4o-mini-2024-07-18`. Do not treat these as interchangeable model names.

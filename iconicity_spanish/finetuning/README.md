@@ -13,5 +13,3 @@ This folder belongs to the iconicity estimation experiments. The files listed be
 ## Split method
 
 These files reflect the 50/50 train/test split configured with `train_split_percentage: 0.5` and `random_state: 42`. The selected answer is `rating` (English) or `ico-m` (Spanish). The fine-tuning JSONL is derived from the training portion; the test portion is reserved for validation.
-
-**TO CONFIRM:** the exact API fine-tuning job settings (epochs, batch size, learning-rate multiplier, and returned job ID) from the archived job metadata.

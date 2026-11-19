@@ -21,7 +21,7 @@ Rows (excluding header): **127,727**. Columns: **2**.
 | Column | Meaning |
 |---|---|
 | `word` | Lexical entry or expression as represented in this table; case and punctuation may be meaningful. |
-| `iconicity` | Model-generated iconicity estimate on the 1–7 rating scale. **CHECK:** confirm exact aggregation and handling of invalid/missing responses in the generating script and output provenance. |
+| `iconicity` | Model-generated iconicity estimate on the 1–7 rating scale. |
 
 **Interpretation:** Model-generated scores are predictions, not direct human measurements. Numeric and punctuation-bearing entries were intentionally preserved to allow alignment with the input lists.
 

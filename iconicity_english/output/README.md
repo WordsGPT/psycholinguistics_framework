@@ -26,7 +26,7 @@ Rows (excluding header): **65,305**. Columns: **2**.
 | Column | Meaning |
 |---|---|
 | `word` | Lexical entry or expression as represented in this table; case and punctuation may be meaningful. |
-| `iconicity` | Model-generated iconicity estimate on the 1–7 rating scale. **CHECK:** confirm exact aggregation and handling of invalid/missing responses in the generating script and output provenance. |
+| `iconicity` | Model-generated iconicity estimate on the 1–7 rating scale. |
 
 **Interpretation:** Model-generated scores are predictions, not direct human measurements. Numeric and punctuation-bearing entries were intentionally preserved to allow alignment with the input lists.
 
@@ -38,11 +38,11 @@ Rows (excluding header): **14,776**. Columns: **9**.
 | Column | Meaning |
 |---|---|
 | `word` | Lexical entry or expression as represented in this table; case and punctuation may be meaningful. |
-| `n_ratings` | Number of ratings recorded in the English source dataset. **CHECK:** exact counting rule versus `n` should be confirmed against the original dataset documentation. |
-| `n` | Count field retained from the English source norms. **CHECK:** verify the exact denominator and the distinction from `n_ratings` with Winter et al. (2024). |
+| `n_ratings` | Number of ratings recorded in the English source dataset. |
+| `n` | Count field retained from the English source norms. |
 | `prop_known` | Proportion of participants indicating that they knew the word; inherited from the English norms (usually between 0 and 1). |
 | `rating` | Mean human iconicity rating on a 1–7 scale (English norms; Winter et al., 2024). |
 | `rating_sd` | Standard deviation of the human iconicity ratings (English normative study). |
 | `iconicity_english_base_prompt_gpt-4o` | Model-generated English iconicity estimate from the base (non-fine-tuned) configuration; configuration lists `gpt-4o-mini-2024-07-18`. |
 | `iconicity_english_base_prompt_gpt-4o_finetuned` | Model-generated English iconicity estimate from the fine-tuned configuration defined in `config.yaml`. |
-| `iconicity_english_UPM-LLM` | Additional model-generated English estimate labelled UPM-LLM. **TO COMPLETE:** model version, procedure and provenance of these scores. |
+| `iconicity_english_UPM-LLM` | Additional model-generated English estimate labelled UPM-LLM. |
